@@ -4,7 +4,18 @@ This is the repository for the pgpcord project.
 
 ## Description
 
-Provide a brief description of your project here.
+pgpcord is a security-focused Vencord plugin that brings PGP encryption to your Discord communications.
+
+## Guiding Principles
+
+This project is governed by a strict set of principles to ensure user privacy and security.
+
+- **Privacy-First**: No unencrypted data ever leaves the client.
+- **User-Trust**: All key operations must be explicit and user-confirmed.
+- **Zero-Trace**: Local storage must be encrypted; no plaintext logging.
+- **Minimal-Backend**: The backend is for key exchange only, never message content.
+
+For more details, see the [project constitution](/.specify/memory/constitution.md).
 
 ## Installation
 
