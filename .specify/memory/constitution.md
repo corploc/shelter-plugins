@@ -1,11 +1,13 @@
 <!--
 Sync Impact Report:
-- Version change: none -> 1.0.0
+- Version change: 1.0.0 -> 2.0.0
+- Modified principles:
+  - Principle I: "Privacy-First" -> "Security-First" (redefined)
+  - Principle II: "User-Trust" -> "User Trust" (redefined)
+  - Principle III: "Zero-Trace" -> "Architecture" (replaced)
+  - Principle IV: "Minimal-Backend" -> "Minimal Backend" (redefined)
 - Added sections:
-  - Core Principles
-  - Security Requirements
-  - Development Workflow
-  - Governance
+  - Principle V: Lifecycle Safety
 - Templates requiring updates:
   - ⚠ .specify/templates/plan-template.md
   - ⚠ .specify/templates/spec-template.md
@@ -15,30 +17,35 @@ Sync Impact Report:
 -->
 # pgpcord Constitution
 
+This constitution is the supreme governing document for the pgpcord project. All development, contributions, and decision-making must align with these principles.
+
 ## Core Principles
 
-### I. Privacy-First
-No unencrypted data ever leaves the client. All data must be encrypted at rest and in transit.
+### I. Security-First
+**Rule**: No unencrypted message content shall ever be transmitted to the Discord API or any backend service. Private keys MUST be stored exclusively on the user's local device and MUST be encrypted with a user-provided passphrase.
+**Rationale**: The core purpose of the plugin is to provide end-to-end encryption. Compromising on this principle would render the project's primary goal void and betray user trust.
 
-### II. User-Trust
-All key operations must be explicit and user-confirmed. The user must be in control of their keys and data.
+### II. Architecture
+**Rule**: The plugin MUST be developed within the `plugins/pgpcord` directory of the Lune monorepo. It MUST be built using the `lune` toolchain. All user interface components MUST be implemented using `shelter.ui` (SolidJS), with styling applied via SCSS modules injected by `shelter.ui.injectCss`.
+**Rationale**: Adhering to a strict, unified architecture ensures maintainability, simplifies the build process, and guarantees compatibility with the target Shelter/Vencord environment.
 
-### III. Zero-Trace
-Local storage must be encrypted. No plaintext logging of sensitive information.
+### III. Minimal Backend
+**Rule**: The backend, hosted on Supabase, MUST be used exclusively for public key exchange and identity verification (OIDC). It MUST never store, process, or have access to any message content, encrypted or otherwise.
+**Rationale**: Minimizing backend functionality reduces the attack surface and reinforces the zero-trust model. The backend's role is solely to facilitate secure connections, not to be a part of the communication channel.
 
-### IV. Minimal-Backend
-The backend is for key exchange only, never for message content. The backend should be as simple as possible.
+### IV. Lifecycle Safety
+**Rule**: The plugin's `onUnload` function MUST meticulously clean up all modifications to the environment. This includes, but is not limited to, removing all `spitroast` patches and disconnecting all DOM observers.
+**Rationale**: Failure to clean up resources can lead to memory leaks, UI artifacts, and conflicts with other plugins or Discord's native functionality. Rigorous cleanup ensures stability and a seamless user experience.
 
-## Security Requirements
-
-All cryptographic operations must use well-vetted, standard libraries. No custom crypto. Dependencies will be regularly audited for vulnerabilities.
-
-## Development Workflow
-
-All changes must be submitted as pull requests and reviewed by at least one other person. All code must pass automated testing, including linting and security analysis, before being merged.
+### V. User Trust
+**Rule**: The user interface MUST provide a clear, unambiguous, and persistent visual distinction between encrypted ("Secure Mode") and unencrypted states. The user must never be in doubt about the security status of their conversation.
+**Rationale**: Accidental leakage of sensitive information is a critical failure state. The UI must be designed to prevent user error by making the current security context impossible to ignore.
 
 ## Governance
 
-This constitution is the supreme governing document for this project. All development and contributions must align with these principles. Amendments to this constitution require a pull request and approval from the project maintainers.
+Amendments to this constitution require a pull request and approval from the project maintainers. Changes are versioned according to Semantic Versioning:
+- **MAJOR**: Backward-incompatible changes, such as removing a principle.
+- **MINOR**: Adding a new principle or a significant expansion of an existing one.
+- **PATCH**: Clarifications, typo fixes, or other non-functional changes.
 
-**Version**: 1.0.0 | **Ratified**: 2025-11-22 | **Last Amended**: 2025-11-22
+**Version**: 2.0.0 | **Ratified**: 2025-11-22 | **Last Amended**: 2025-11-22

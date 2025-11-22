@@ -212,7 +212,6 @@ develop-eggs/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -425,3 +424,5 @@ GitHub.sublime-settings
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/python,linux,visualstudiocode,pycharm,sublimetext,emacs,git,github,ssh
+\n# Node.js/TypeScript dependencies\nnode_modules/
+\n# JetBrains IDEs\n.idea/

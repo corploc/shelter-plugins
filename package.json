@@ -1,0 +1,29 @@
+{
+  "name": "pgpcord",
+  "version": "1.0.0",
+  "description": "This is the repository for the pgpcord project.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zerostats/pgpcord.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Zerostats/pgpcord/issues"
+  },
+  "homepage": "https://github.com/Zerostats/pgpcord#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.84.0",
+    "openpgp": "^6.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}
