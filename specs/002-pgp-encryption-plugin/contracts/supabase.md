@@ -44,27 +44,26 @@ RLS is enabled on the `user_keys` table to enforce the access policy defined in 
     ```sql
     -- Helper function to extract the user's Discord ID from the JWT.
     -- Note: The exact claim might be 'sub' or another field depending on Discord's OIDC implementation.
-    -- This assumes the 'sub' claim holds the Discord user ID.
-    CREATE OR REPLACE FUNCTION auth.get_discord_user_id()
+    -- This assumes the 'sub' claim holds the Discord user ID. This function must be created in the `public` schema.
+    CREATE OR REPLACE FUNCTION public.get_discord_user_id()
     RETURNS TEXT AS $$
     BEGIN
       RETURN auth.jwt()->>'sub';
     END;
     $$ LANGUAGE plpgsql STABLE;
-
+    
     -- Policy for INSERT
     CREATE POLICY "Allow individual user to insert their own key"
     ON public.user_keys
     FOR INSERT
-    WITH CHECK (auth.get_discord_user_id() = discord_id::text);
-
+    WITH CHECK (public.get_discord_user_id() = discord_id::text);
+    
     -- Policy for UPDATE
     CREATE POLICY "Allow individual user to update their own key"
     ON public.user_keys
     FOR UPDATE
-    USING (auth.get_discord_user_id() = discord_id::text)
-    WITH CHECK (auth.get_discord_user_id() = discord_id::text);
-    ```
+    USING (public.get_discord_user_id() = discord_id::text)
+    WITH CHECK (public.get_discord_user_id() = discord_id::text);    ```
 
 ### Summary of Permissions
 
