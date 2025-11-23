@@ -38,6 +38,7 @@ export default () => {
   const [hasKeys, setHasKeys] = createSignal(false);
   const [checking, setChecking] = createSignal(false);
   const [currentChannelId, setCurrentChannelId] = createSignal<string | null>(null);
+  const [hasCheckedKeys, setHasCheckedKeys] = createSignal(false);
   let ref: HTMLDivElement | undefined;
 
   onMount(async () => {
@@ -46,6 +47,15 @@ export default () => {
     setCurrentUserHasKey(userHasKey);
     setCheckingCurrentUser(false);
   });
+
+  const onChannelChange = (channelId: string) => {
+    setCurrentChannelId(channelId);
+    setHasKeys(false);
+    setHasCheckedKeys(false);
+    if (isSecureMode()) {
+      setSecureMode(false);
+    }
+  };
 
   const checkKeys = async (channelId: string) => {
       setChecking(true);
@@ -63,10 +73,11 @@ export default () => {
           }
 
           const keys = await getPublicKeys(recipientIds);
-          const foundIds = new Set(keys.map(k => k.discord_id));
+          const foundIds = new Set(keys.map(k => String(k.discord_id)));
           const allFound = recipientIds.every((id: string) => foundIds.has(id));
           
           setHasKeys(allFound);
+          setHasCheckedKeys(true);
           
           if (!allFound && isSecureMode()) {
               setSecureMode(false);
@@ -87,14 +98,13 @@ export default () => {
       }
       const channelId = shelter.flux?.stores?.SelectedChannelStore?.getChannelId();
       if (channelId !== currentChannelId()) {
-          setCurrentChannelId(channelId);
-          if (channelId) checkKeys(channelId);
+          onChannelChange(channelId);
       }
-  }, 1000);
+  }, 200);
 
   onCleanup(() => clearInterval(interval));
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (checking() || checkingCurrentUser()) return;
 
     if (!currentUserHasKey()) {
@@ -103,7 +113,16 @@ export default () => {
         return;
     }
 
-    if (!hasKeys()) {
+    const channelId = currentChannelId();
+    if (!channelId) return;
+
+    // Always check for keys on click
+    await checkKeys(channelId);
+
+    // After checking, the `hasKeys` signal is updated. Now we can act on it.
+    if (hasKeys()) {
+        setSecureMode(!isSecureMode());
+    } else {
         const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgpcord.dev";
         
         const textarea = document.querySelector("form textarea") as HTMLTextAreaElement;
@@ -114,10 +133,7 @@ export default () => {
         } else {
             alert("Could not find chat bar to insert invite. Please send this link manually: https://pgpcord.dev");
         }
-        return;
     }
-
-    setSecureMode(!isSecureMode());
   };
 
   const styles = `
@@ -154,7 +170,9 @@ export default () => {
     if (checkingCurrentUser()) return "Checking your key...";
     if (!currentUserHasKey()) return "You need to set up your key in settings.";
     if (checking()) return "Checking recipient's keys...";
-    if (!hasKeys()) return "Recipient has no key. Click to invite.";
+    if (!hasKeys() && hasCheckedKeys()) return "Recipient has no key. Click to invite.";
+    // Always check on click, so this state is less relevant, but good for clarity
+    if (!hasKeys() && !hasCheckedKeys()) return "Click to check for recipient's key.";
     return "Toggle Secure Mode";
   };
 
@@ -165,7 +183,7 @@ export default () => {
         onClick={handleClick} 
         title={getTitle()}
     >
-      <LockIcon locked={isSecureMode()} disabled={!currentUserHasKey() || !hasKeys()} />
+      <LockIcon locked={isSecureMode()} disabled={!currentUserHasKey() || (!hasKeys() && hasCheckedKeys())} />
     </div>
   );
 };

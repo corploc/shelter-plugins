@@ -1,8 +1,8 @@
 import { PublicKeyRecord } from './types';
 
-// TODO: Replace with actual Supabase URL and Anon Key
+// Supabase URL and Anon Key
 const SUPABASE_URL = 'https://pkbbwljgdyblxtroicpd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrYmJ3bGpnZHlibHh0cm9pY3BkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MTQxNTgsImV4cCI6MjA3OTM5MDE1OH0.vp9qvMASlnv-jQwjJSWcIaKXJ_V-n0WIU5aTe2uAfv0';
+const SUPABASE_ANON_KEY = 'sb_publishable_aiZeSeoUYh5roraVYEA8Bw_8cvn7ewe';
 
 // Assume Shelter provides access to Discord's internals, like the current user and OIDC token.
 declare const shelter: any; 
@@ -16,21 +16,20 @@ const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
  * @returns A promise that resolves to an array of PublicKeyRecord objects.
  */
 export async function getPublicKeys(userIds: string[]): Promise<PublicKeyRecord[]> {
-  // Removed configuration check as values are hardcoded
-
   const now = Date.now();
   const missingIds: string[] = [];
   const cachedKeys: PublicKeyRecord[] = [];
 
   for (const id of userIds) {
-      const cached = publicKeyCache.get(id);
-      if (cached && (now - cached.timestamp < CACHE_TTL)) {
-          if (cached.key) {
-              cachedKeys.push(cached.key);
-          }
-      } else {
-          missingIds.push(id);
+    const cached = publicKeyCache.get(id);
+    if (cached && now - cached.timestamp < CACHE_TTL) {
+      if (cached.key) {
+        cachedKeys.push(cached.key);
       }
+      // If cached (even if null), don't add to missingIds
+    } else {
+      missingIds.push(id);
+    }
   }
 
   if (missingIds.length === 0) {
@@ -90,8 +89,6 @@ let currentUserKeyCache: { hasKey: boolean, timestamp: number } | null = null;
  * @returns A promise that resolves to true if a key is found, false otherwise.
  */
 export async function checkCurrentUserKey(): Promise<boolean> {
-  // Removed configuration check as values are hardcoded
-
   const now = Date.now();
   if (currentUserKeyCache && (now - currentUserKeyCache.timestamp < CACHE_TTL)) {
       return currentUserKeyCache.hasKey;
