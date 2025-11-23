@@ -15,4 +15,5 @@ export type CacheDuration = 'session' | 'time' | 'none';
 export interface PluginSettings {
   cacheDuration: CacheDuration;
   cacheTimeMinutes: number;
+  lastKnownKeyStatus?: 'idle' | 'checking' | 'found' | 'not_found';
 }

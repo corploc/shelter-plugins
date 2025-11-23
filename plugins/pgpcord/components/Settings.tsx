@@ -1,6 +1,7 @@
 import { createSignal, Show, onMount } from "solid-js";
 import { generateKeyPair, saveKeyPairToLocalStorage, loadKeyPairFromLocalStorage, encryptPrivateKey, decryptPrivateKey } from "../lib/crypto";
 import { UserKeyPair, PluginSettings, CacheDuration } from "../lib/types";
+import { checkCurrentUserKey } from "../lib/api";
 import classes from "./settings.scss";
 
 // Assuming Shelter's data API is available globally via `shelter`
@@ -9,6 +10,7 @@ declare const shelter: any;
 const defaultSettings: PluginSettings = {
   cacheDuration: 'session',
   cacheTimeMinutes: 15,
+  lastKnownKeyStatus: 'idle',
 };
 
 export default () => {
@@ -36,6 +38,11 @@ export default () => {
   const updateSettings = (partial: Partial<PluginSettings>) => {
       shelter.plugin.store.pgpcord_settings = { ...getSettings(), ...partial };
   };
+
+  // Key status check - initialize from store
+  const [keyStatus, setKeyStatus] = createSignal<"idle" | "checking" | "found" | "not_found">(
+      getSettings().lastKnownKeyStatus || 'idle'
+  );
 
   onMount(() => {
     const loadedKeys = loadKeyPairFromLocalStorage();
@@ -157,6 +164,20 @@ export default () => {
       }
   };
 
+  const handleCheckStatus = async () => {
+    setKeyStatus("checking");
+    try {
+      const exists = await checkCurrentUserKey();
+      const status = exists ? "found" : "not_found";
+      setKeyStatus(status);
+      updateSettings({ lastKnownKeyStatus: status });
+    } catch (e) {
+      console.error("Failed to check key status", e);
+      setKeyStatus("not_found"); // Or error state
+      updateSettings({ lastKnownKeyStatus: "not_found" });
+    }
+  };
+
   return (
     <div class={classes.container}>
       <h2 class={classes.header}>PGPCord Settings</h2>
@@ -266,6 +287,27 @@ export default () => {
                     Export Keys Backup
                  </button>
               </div>
+              
+              <div class={classes.inputGroup} style={{ "margin-top": "16px", "border-top": "1px solid var(--background-modifier-accent)", "padding-top": "16px" }}>
+                  <h4 class={classes.subHeader}>Account Status</h4>
+                  <div style={{ display: "flex", "align-items": "center", gap: "12px" }}>
+                      <button class={classes.secondaryButton} onClick={handleCheckStatus} disabled={keyStatus() === "checking"}>
+                          {keyStatus() === "checking" ? "Checking..." : "Check Server Status"}
+                      </button>
+                      <Show when={keyStatus() !== "idle"}>
+                          <span style={{ 
+                              color: keyStatus() === "found" ? "var(--text-positive)" : "var(--text-danger)",
+                              "font-weight": "bold"
+                          }}>
+                              {keyStatus() === "found" ? "Key Found on Server" : "Key Not Found on Server"}
+                          </span>
+                      </Show>
+                  </div>
+                  <p class={classes.muted} style={{ "margin-top": "8px" }}>
+                      Check if your public key is correctly registered on the PGPCord server.
+                  </p>
+              </div>
+
               <div class={classes.inputGroup} style={{ "margin-top": "8px" }}>
                  <button class={classes.secondaryButton} style={{ "background-color": "var(--button-danger-background)", color: "var(--white)" }} onClick={handleDeleteKeys}>
                     Delete Keys & Account

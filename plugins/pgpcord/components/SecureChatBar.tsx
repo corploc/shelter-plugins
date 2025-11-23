@@ -1,6 +1,6 @@
-import { createSignal, createEffect, onCleanup, onMount } from "solid-js";
+import { createSignal, onCleanup, onMount } from "solid-js";
 import { isSecureMode, setSecureMode } from "../lib/store";
-import { getPublicKeys } from "../lib/api";
+import { getPublicKeys, checkCurrentUserKey } from "../lib/api";
 
 declare const shelter: any;
 
@@ -33,9 +33,19 @@ const LockIcon = (props: { locked: boolean, disabled?: boolean }) => (
 );
 
 export default () => {
+  const [currentUserHasKey, setCurrentUserHasKey] = createSignal(false);
+  const [checkingCurrentUser, setCheckingCurrentUser] = createSignal(true);
   const [hasKeys, setHasKeys] = createSignal(false);
   const [checking, setChecking] = createSignal(false);
   const [currentChannelId, setCurrentChannelId] = createSignal<string | null>(null);
+  let ref: HTMLDivElement | undefined;
+
+  onMount(async () => {
+    setCheckingCurrentUser(true);
+    const userHasKey = await checkCurrentUserKey();
+    setCurrentUserHasKey(userHasKey);
+    setCheckingCurrentUser(false);
+  });
 
   const checkKeys = async (channelId: string) => {
       setChecking(true);
@@ -48,22 +58,16 @@ export default () => {
 
           const recipientIds = channel.recipients || [];
           if (recipientIds.length === 0) {
-              // Not a DM or Group DM, or no recipients.
-              // Maybe a guild channel? We don't support guild channels yet or we treat them as "no keys needed" (public)?
-              // For now, assume we only support DMs.
               setHasKeys(false);
               return;
           }
 
           const keys = await getPublicKeys(recipientIds);
-          // We need keys for ALL recipients to be secure? Or at least one?
-          // Usually all.
           const foundIds = new Set(keys.map(k => k.discord_id));
           const allFound = recipientIds.every((id: string) => foundIds.has(id));
           
           setHasKeys(allFound);
           
-          // If not all found, disable secure mode if it was on
           if (!allFound && isSecureMode()) {
               setSecureMode(false);
           }
@@ -76,9 +80,11 @@ export default () => {
       }
   };
 
-  // Poll for channel changes or subscribe to flux
-  // Using polling for simplicity as flux subscription requires knowing the event name (CHANNEL_SELECT)
   const interval = setInterval(() => {
+      if (!ref || !document.body.contains(ref)) {
+          clearInterval(interval);
+          return;
+      }
       const channelId = shelter.flux?.stores?.SelectedChannelStore?.getChannelId();
       if (channelId !== currentChannelId()) {
           setCurrentChannelId(channelId);
@@ -89,17 +95,19 @@ export default () => {
   onCleanup(() => clearInterval(interval));
 
   const handleClick = () => {
-    if (checking()) return;
+    if (checking() || checkingCurrentUser()) return;
+
+    if (!currentUserHasKey()) {
+        alert("You need to set up your PGP key in the PGPCord settings before you can send encrypted messages.");
+        // shelter.ui.openSettings("PGPCord"); // This would be ideal
+        return;
+    }
 
     if (!hasKeys()) {
-        // Send invite message
-        const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgpcord.dev"; // Replace with actual URL
+        const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgpcord.dev";
         
-        // Try to insert into chat bar
-        // We can try to find the textarea and set value
         const textarea = document.querySelector("form textarea") as HTMLTextAreaElement;
         if (textarea) {
-            // React hack to set value
             const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
             nativeTextAreaValueSetter?.call(textarea, inviteText);
             textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -112,8 +120,6 @@ export default () => {
     setSecureMode(!isSecureMode());
   };
 
-  // Inject some basic styles for the locked/unlocked states
-  // This would typically be done in a separate SCSS file
   const styles = `
     .secure-chat-bar-button {
       cursor: pointer;
@@ -133,10 +139,10 @@ export default () => {
       color: var(--interactive-hover);
     }
     .secure-chat-bar-button .locked-icon {
-      color: var(--green-360); /* Green when locked */
+      color: var(--green-360);
     }
     .secure-chat-bar-button .unlocked-icon {
-      color: var(--interactive-normal); /* Default color when unlocked */
+      color: var(--interactive-normal);
     }
     .secure-chat-bar-button .disabled-icon {
       color: var(--text-muted);
@@ -144,14 +150,22 @@ export default () => {
   `;
   shelter.ui.injectCss(styles);
 
+  const getTitle = () => {
+    if (checkingCurrentUser()) return "Checking your key...";
+    if (!currentUserHasKey()) return "You need to set up your key in settings.";
+    if (checking()) return "Checking recipient's keys...";
+    if (!hasKeys()) return "Recipient has no key. Click to invite.";
+    return "Toggle Secure Mode";
+  };
 
   return (
     <div 
+        ref={ref}
         class="secure-chat-bar-button" 
         onClick={handleClick} 
-        title={checking() ? "Checking keys..." : (hasKeys() ? "Toggle Secure Mode" : "Recipient has no keys. Click to invite.")}
+        title={getTitle()}
     >
-      <LockIcon locked={isSecureMode()} disabled={!hasKeys()} />
+      <LockIcon locked={isSecureMode()} disabled={!currentUserHasKey() || !hasKeys()} />
     </div>
   );
 };
