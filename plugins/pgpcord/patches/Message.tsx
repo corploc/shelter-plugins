@@ -428,6 +428,8 @@ const observeDom = (selector: string, callback: (el: Element) => void) => {
     return () => observer.disconnect();
 };
 
+let uninterceptEdit: (() => void) | null = null;
+
 export const patchMessageContent = () => {
     // Observe chat messages directly to catch those with only attachments
     unobserve = observeDom("[id^='chat-messages-']", (messageElement) => {
@@ -436,7 +438,7 @@ export const patchMessageContent = () => {
         // Handle potential ChannelID-MessageID format
         if (messageId.includes('-')) {
             const parts = messageId.split('-');
-            messageId = parts[parts.length - 1];
+            messageId = parts[parts.length - 1]; // Return the last part (MessageID)
         }
 
         if (!messageId) return;
@@ -464,8 +466,56 @@ export const patchMessageContent = () => {
             }
         });
     });
+
+    // Intercept message editing to prevent editing of encrypted messages
+    // This prevents the security leak where decrypted plaintext would show in the edit box
+    if (shelter.flux?.dispatcher) {
+        const originalDispatch = shelter.flux.dispatcher.dispatch.bind(shelter.flux.dispatcher);
+
+        shelter.flux.dispatcher.dispatch = (payload: any) => {
+            // Intercept START_EDIT_MESSAGE actions
+            if (payload.type === "MESSAGE_START_EDIT") {
+                const messageId = payload.messageId;
+                const channelId = payload.channelId;
+
+                // Check if this message is in our encrypted cache
+                if (messageCache.has(messageId)) {
+                    // Block the edit and show a notification
+                    console.log("PGPCord: Blocked edit attempt on encrypted message", messageId);
+
+                    // Show a toast notification if available
+                    if (shelter.ui?.showToast) {
+                        shelter.ui.showToast({
+                            title: "Cannot Edit Encrypted Message",
+                            content: "Encrypted messages cannot be edited for security reasons. Please delete and send a new message instead.",
+                            duration: 5000,
+                        });
+                    } else {
+                        // Fallback: alert
+                        alert("Cannot edit encrypted messages for security reasons.\nPlease delete and send a new message instead.");
+                    }
+
+                    // Do NOT dispatch the edit action
+                    return;
+                }
+            }
+
+            // For all other actions, proceed normally
+            return originalDispatch(payload);
+        };
+
+        // Store cleanup function
+        uninterceptEdit = () => {
+            if (shelter.flux?.dispatcher) {
+                shelter.flux.dispatcher.dispatch = originalDispatch;
+            }
+        };
+    } else {
+        console.warn("PGPCord: shelter.flux.dispatcher not found. Message edit blocking will not work.");
+    }
 };
 
 export const unpatchMessage = () => {
     if (unobserve) unobserve();
+    if (uninterceptEdit) uninterceptEdit();
 };
