@@ -1,0 +1,131 @@
+.container {
+  padding: 16px;
+  color: var(--text-normal);
+}
+
+.header {
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--header-primary);
+}
+
+.section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--background-modifier-accent);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.subHeader {
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--header-secondary);
+}
+
+.text {
+  margin-bottom: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-normal);
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--header-secondary);
+}
+
+.input {
+  padding: 10px;
+  border-radius: 3px;
+  border: none;
+  background-color: var(--input-background);
+  color: var(--text-normal);
+  font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    background-color: var(--input-background); // Keep same or slightly lighter
+  }
+}
+
+.select {
+  padding: 10px;
+  border-radius: 3px;
+  border: none;
+  background-color: var(--input-background);
+  color: var(--text-normal);
+  font-size: 16px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.button {
+  padding: 10px 20px;
+  border-radius: 3px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.17s ease;
+  color: white;
+  background-color: var(--brand-experiment);
+
+  &:hover {
+    background-color: var(--brand-experiment-560);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.secondaryButton {
+  @extend .button;
+  background-color: var(--button-secondary-background);
+  color: var(--text-normal);
+
+  &:hover {
+    background-color: var(--button-secondary-background-hover);
+  }
+}
+
+.error {
+  color: var(--text-danger);
+  margin-bottom: 16px;
+  padding: 8px;
+  background-color: rgba(var(--text-danger-rgb), 0.1);
+  border-radius: 4px;
+}
+
+.codeBlock {
+  background-color: var(--background-secondary);
+  padding: 12px;
+  border-radius: 4px;
+  font-family: var(--font-code);
+  font-size: 12px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  user-select: text;
+}
