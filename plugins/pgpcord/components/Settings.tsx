@@ -18,30 +18,30 @@ export default () => {
   const [passphrase, setPassphrase] = createSignal("");
   const [isGenerating, setIsGenerating] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
-  
+
   // Modal state
   const [showModal, setShowModal] = createSignal(false);
   const [modalMode, setModalMode] = createSignal<"export" | "import">("export");
   const [modalPassword, setModalPassword] = createSignal("");
   const [pendingImportFile, setPendingImportFile] = createSignal<File | null>(null);
-  
+
   // Use shelter store directly for settings where possible, but we need a local signal for the form
   // or we can just read/write to store.
   // For better reactivity, we can wrap store access if needed, but shelter store is reactive.
-  
+
   // Initialize store defaults if needed
   if (!shelter.plugin.store.pgpcord_settings) {
-      shelter.plugin.store.pgpcord_settings = defaultSettings;
+    shelter.plugin.store.pgpcord_settings = defaultSettings;
   }
 
   const getSettings = () => shelter.plugin.store.pgpcord_settings as PluginSettings;
   const updateSettings = (partial: Partial<PluginSettings>) => {
-      shelter.plugin.store.pgpcord_settings = { ...getSettings(), ...partial };
+    shelter.plugin.store.pgpcord_settings = { ...getSettings(), ...partial };
   };
 
   // Key status check - initialize from store
   const [keyStatus, setKeyStatus] = createSignal<"idle" | "checking" | "found" | "not_found">(
-      getSettings().lastKnownKeyStatus || 'idle'
+    getSettings().lastKnownKeyStatus || 'idle'
   );
 
   onMount(() => {
@@ -72,96 +72,108 @@ export default () => {
   };
 
   const handleDeleteKeys = () => {
-      if (confirm("Are you sure you want to delete your keys? This action cannot be undone and you will lose access to all encrypted messages.")) {
-          saveKeyPairToLocalStorage(null as any); // Clear storage
-          setKeyPair(null);
-          setPassphrase("");
-          // Redirect to delete user on server
-          window.open("https://pgpcord.zerostats.dev/delete", "_blank");
-      }
+    if (confirm("Are you sure you want to delete your keys? This action cannot be undone and you will lose access to all encrypted messages.")) {
+      saveKeyPairToLocalStorage(null as any); // Clear storage
+      setKeyPair(null);
+      setPassphrase("");
+      // Redirect to delete user on server
+      window.open("https://pgpcord.zerostats.dev/delete", "_blank");
+    }
   };
 
   const initiateExport = () => {
-      setModalMode("export");
-      setModalPassword("");
-      setShowModal(true);
+    setModalMode("export");
+    setModalPassword("");
+    setShowModal(true);
   };
 
   const initiateImport = (event: Event) => {
-      const input = event.target as HTMLInputElement;
-      if (!input.files || input.files.length === 0) return;
-      setPendingImportFile(input.files[0]);
-      setModalMode("import");
-      setModalPassword("");
-      setShowModal(true);
-      input.value = ""; // Reset input
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    setPendingImportFile(input.files[0]);
+    setModalMode("import");
+    setModalPassword("");
+    setShowModal(true);
+    input.value = ""; // Reset input
   };
 
   const handleModalConfirm = async () => {
-      setShowModal(false);
-      const password = modalPassword();
+    setShowModal(false);
+    const password = modalPassword();
 
-      if (modalMode() === "export") {
-          const keys = keyPair();
-          if (!keys) return;
+    if (modalMode() === "export") {
+      const keys = keyPair();
+      if (!keys) return;
 
-          let privateKeyToExport = keys.privateKey;
-          if (password) {
-              try {
-                  privateKeyToExport = await encryptPrivateKey(keys.privateKey, password);
-              } catch (e) {
-                  console.error("Failed to encrypt key", e);
-                  setError("Failed to encrypt key. Check console.");
-                  return;
-              }
-          }
-          
-          const exportData = { ...keys, privateKey: privateKeyToExport };
-          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
-          const downloadAnchorNode = document.createElement('a');
-          downloadAnchorNode.setAttribute("href", dataStr);
-          downloadAnchorNode.setAttribute("download", "pgpcord_keys.json");
-          document.body.appendChild(downloadAnchorNode);
-          downloadAnchorNode.click();
-          downloadAnchorNode.remove();
-
-      } else if (modalMode() === "import") {
-          const file = pendingImportFile();
-          if (!file) return;
-
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-              try {
-                  const content = e.target?.result as string;
-                  const parsed = JSON.parse(content);
-                  
-                  if (parsed.publicKey && parsed.privateKey && parsed.keyId) {
-                      let privateKey = parsed.privateKey;
-                      
-                      if (password) {
-                           try {
-                              privateKey = await decryptPrivateKey(privateKey, password);
-                           } catch (err) {
-                               setError("Incorrect password or invalid key.");
-                               return;
-                           }
-                      }
-
-                      const newKeys = { ...parsed, privateKey };
-                      saveKeyPairToLocalStorage(newKeys);
-                      setKeyPair(newKeys);
-                      setError(null);
-                      // alert("Keys imported successfully!"); // Avoid alert if possible
-                  } else {
-                      throw new Error("Invalid key file format.");
-                  }
-              } catch (err) {
-                  console.error("Import failed:", err);
-                  setError("Failed to import keys. Invalid file format or wrong password.");
-              }
-          };
-          reader.readAsText(file);
+      let privateKeyToExport = keys.privateKey;
+      if (password) {
+        try {
+          privateKeyToExport = await encryptPrivateKey(keys.privateKey, password);
+        } catch (e) {
+          console.error("Failed to encrypt key", e);
+          setError("Failed to encrypt key. Check console.");
+          return;
+        }
       }
+
+      const exportData = { ...keys, privateKey: privateKeyToExport };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "pgpcord_keys.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+
+    } else if (modalMode() === "import") {
+      const file = pendingImportFile();
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target?.result as string;
+          const parsed = JSON.parse(content);
+
+          if (parsed.publicKey && parsed.privateKey && parsed.keyId) {
+            let privateKey = parsed.privateKey;
+
+            if (password) {
+              try {
+                privateKey = await decryptPrivateKey(privateKey, password);
+              } catch (err) {
+                setError("Incorrect password or invalid key.");
+                return;
+              }
+            }
+
+            const newKeys = { ...parsed, privateKey };
+            saveKeyPairToLocalStorage(newKeys);
+            setKeyPair(newKeys);
+            setError(null);
+            // alert("Keys imported successfully!"); // Avoid alert if possible
+          } else {
+            throw new Error("Invalid key file format.");
+          }
+        } catch (err) {
+          console.error("Import failed:", err);
+          setError("Failed to import keys. Invalid file format or wrong password.");
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const [copyFeedback, setCopyFeedback] = createSignal(false);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+      console.log("PGPCord: Public key copied to clipboard.");
+    }, (err) => {
+      console.error("PGPCord: Failed to copy public key", err);
+    });
   };
 
   const handleCheckStatus = async () => {
@@ -183,42 +195,42 @@ export default () => {
       <h2 class={classes.header}>PGPCord Settings</h2>
 
       <Show when={showModal()}>
-          <div style={{
-              position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-              background: "rgba(0,0,0,0.85)", display: "flex", "align-items": "center", "justify-content": "center", "z-index": 9999
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.85)", display: "flex", "align-items": "center", "justify-content": "center", "z-index": 9999
+        }}>
+          <div class={classes.section} style={{
+            background: "var(--background-primary)",
+            padding: "24px",
+            "border-radius": "8px",
+            "min-width": "320px",
+            "box-shadow": "var(--elevation-high)",
+            border: "1px solid var(--background-modifier-accent)"
           }}>
-              <div class={classes.section} style={{ 
-                  background: "var(--background-primary)", 
-                  padding: "24px", 
-                  "border-radius": "8px", 
-                  "min-width": "320px",
-                  "box-shadow": "var(--elevation-high)",
-                  border: "1px solid var(--background-modifier-accent)"
-              }}>
-                  <h3 class={classes.subHeader} style={{ "margin-top": 0 }}>
-                      {modalMode() === "export" ? "Encrypt Export" : "Decrypt Import"}
-                  </h3>
-                  <p class={classes.text} style={{ "margin-bottom": "16px" }}>
-                      {modalMode() === "export" 
-                          ? "Enter a password to encrypt your private key (Recommended):" 
-                          : "Enter the password for this key file (leave empty if none):"}
-                  </p>
-                  <input 
-                      class={classes.input} 
-                      type="password" 
-                      value={modalPassword()} 
-                      onInput={(e) => setModalPassword(e.currentTarget.value)}
-                      placeholder="Password"
-                      style={{ "margin-bottom": "24px", "background-color": "var(--input-background)" }}
-                  />
-                  <div style={{ display: "flex", gap: "12px", "justify-content": "flex-end" }}>
-                      <button class={classes.secondaryButton} onClick={() => setShowModal(false)}>Cancel</button>
-                      <button class={classes.button} onClick={handleModalConfirm}>
-                          {modalMode() === "export" ? "Export" : "Import"}
-                      </button>
-                  </div>
-              </div>
+            <h3 class={classes.subHeader} style={{ "margin-top": 0 }}>
+              {modalMode() === "export" ? "Encrypt Export" : "Decrypt Import"}
+            </h3>
+            <p class={classes.text} style={{ "margin-bottom": "16px" }}>
+              {modalMode() === "export"
+                ? "Enter a password to encrypt your private key (Recommended):"
+                : "Enter the password for this key file (leave empty if none):"}
+            </p>
+            <input
+              class={classes.input}
+              type="password"
+              value={modalPassword()}
+              onInput={(e) => setModalPassword(e.currentTarget.value)}
+              placeholder="Password"
+              style={{ "margin-bottom": "24px", "background-color": "var(--input-background)" }}
+            />
+            <div style={{ display: "flex", gap: "12px", "justify-content": "flex-end" }}>
+              <button class={classes.secondaryButton} onClick={() => setShowModal(false)}>Cancel</button>
+              <button class={classes.button} onClick={handleModalConfirm}>
+                {modalMode() === "export" ? "Export" : "Import"}
+              </button>
+            </div>
           </div>
+        </div>
       </Show>
 
       <Show when={error()}>
@@ -233,37 +245,37 @@ export default () => {
             <div class={classes.section}>
               <h3 class={classes.subHeader}>Generate New Keys</h3>
               <p class={classes.text}>
-                To get started, generate a new PGP key pair. 
-                <br/>
+                To get started, generate a new PGP key pair.
+                <br />
                 <span class={classes.muted}>You will lose access to your encrypted messages if you forget your passphrase.</span>
               </p>
-              
+
               <div class={classes.inputGroup}>
                 <label class={classes.label} for="passphrase">Passphrase</label>
-                <input 
-                    id="passphrase" 
-                    class={classes.input}
-                    type="password" 
-                    value={passphrase()} 
-                    onInput={(e) => setPassphrase(e.currentTarget.value)} 
-                    placeholder="Enter a strong passphrase" 
+                <input
+                  id="passphrase"
+                  class={classes.input}
+                  type="password"
+                  value={passphrase()}
+                  onInput={(e) => setPassphrase(e.currentTarget.value)}
+                  placeholder="Enter a strong passphrase"
                 />
               </div>
-              
-              <button 
+
+              <button
                 class={classes.button}
-                onClick={handleGenerateKeys} 
+                onClick={handleGenerateKeys}
                 disabled={!passphrase() || isGenerating()}
               >
                 Generate Keys
               </button>
 
               <div class={classes.inputGroup} style={{ "margin-top": "16px", "border-top": "1px solid var(--background-modifier-accent)", "padding-top": "16px" }}>
-                  <h4 class={classes.subHeader}>Or Import Existing Keys</h4>
-                  <label class={classes.secondaryButton} style={{ display: "inline-block", cursor: "pointer" }}>
-                      Import Keys from JSON
-                      <input type="file" accept=".json" onChange={initiateImport} style={{ display: "none" }} />
-                  </label>
+                <h4 class={classes.subHeader}>Or Import Existing Keys</h4>
+                <label class={classes.secondaryButton} style={{ display: "inline-block", cursor: "pointer" }}>
+                  Import Keys from JSON
+                  <input type="file" accept=".json" onChange={initiateImport} style={{ display: "none" }} />
+                </label>
               </div>
             </div>
           </Show>
@@ -273,54 +285,59 @@ export default () => {
           <div>
             <div class={classes.section}>
               <h3 class={classes.subHeader}>Your PGP Keys</h3>
-              
+
               <div class={classes.inputGroup}>
-                <label class={classes.label}>Public Key</label>
-                <div class={classes.codeBlock}>{kp.publicKey}</div>
+                <div style={{ display: "flex", "justify-content": "space-between", "align-items": "center", "margin-bottom": "8px" }}>
+                  <label class={classes.label}>Public Key</label>
+                  <button class={classes.copyButton} onClick={() => handleCopy(kp.publicKey)}>
+                    {copyFeedback() ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+                <pre class={classes.codeBlock}><code>{kp.publicKey}</code></pre>
               </div>
-              
+
               <div class={classes.inputGroup} style={{ display: "flex", gap: "8px" }}>
-                 <button class={classes.secondaryButton} onClick={handlePublishKey}>
-                    Publish Public Key
-                 </button>
-                 <button class={classes.secondaryButton} onClick={initiateExport}>
-                    Export Keys Backup
-                 </button>
+                <button class={classes.secondaryButton} onClick={handlePublishKey}>
+                  Publish Public Key
+                </button>
+                <button class={classes.secondaryButton} onClick={initiateExport}>
+                  Export Keys Backup
+                </button>
               </div>
-              
+
               <div class={classes.inputGroup} style={{ "margin-top": "16px", "border-top": "1px solid var(--background-modifier-accent)", "padding-top": "16px" }}>
-                  <h4 class={classes.subHeader}>Account Status</h4>
-                  <div style={{ display: "flex", "align-items": "center", gap: "12px" }}>
-                      <button class={classes.secondaryButton} onClick={handleCheckStatus} disabled={keyStatus() === "checking"}>
-                          {keyStatus() === "checking" ? "Checking..." : "Check Server Status"}
-                      </button>
-                      <Show when={keyStatus() !== "idle"}>
-                          <span style={{ 
-                              color: keyStatus() === "found" ? "var(--text-positive)" : "var(--text-danger)",
-                              "font-weight": "bold"
-                          }}>
-                              {keyStatus() === "found" ? "Key Found on Server" : "Key Not Found on Server"}
-                          </span>
-                      </Show>
-                  </div>
-                  <p class={classes.muted} style={{ "margin-top": "8px" }}>
-                      Check if your public key is correctly registered on the PGPCord server.
-                  </p>
+                <h4 class={classes.subHeader}>Account Status</h4>
+                <div style={{ display: "flex", "align-items": "center", gap: "12px" }}>
+                  <button class={classes.secondaryButton} onClick={handleCheckStatus} disabled={keyStatus() === "checking"}>
+                    {keyStatus() === "checking" ? "Checking..." : "Check Server Status"}
+                  </button>
+                  <Show when={keyStatus() !== "idle"}>
+                    <span style={{
+                      color: keyStatus() === "found" ? "var(--text-positive)" : "var(--text-danger)",
+                      "font-weight": "bold"
+                    }}>
+                      {keyStatus() === "found" ? "Key Found on Server" : "Key Not Found on Server"}
+                    </span>
+                  </Show>
+                </div>
+                <p class={classes.muted} style={{ "margin-top": "8px" }}>
+                  Check if your public key is correctly registered on the PGPCord server.
+                </p>
               </div>
 
               <div class={classes.inputGroup} style={{ "margin-top": "8px" }}>
-                 <button class={classes.secondaryButton} style={{ "background-color": "var(--button-danger-background)", color: "var(--white)" }} onClick={handleDeleteKeys}>
-                    Delete Keys & Account
-                 </button>
+                <button class={classes.secondaryButton} style={{ "background-color": "var(--button-danger-background)", color: "var(--white)" }} onClick={handleDeleteKeys}>
+                  Delete Keys & Account
+                </button>
               </div>
               <p class={classes.muted}>
-                   Publishing opens an external website. Exporting downloads a JSON file with your private key - keep it safe! Deleting will remove keys locally and open the deletion page.
+                Publishing opens an external website. Exporting downloads a JSON file with your private key - keep it safe! Deleting will remove keys locally and open the deletion page.
               </p>
             </div>
 
             <div class={classes.section}>
               <h3 class={classes.subHeader}>Security Settings</h3>
-              
+
               <div class={classes.inputGroup}>
                 <label class={classes.label} for="cache-duration">Passphrase Cache Duration</label>
                 <select
@@ -348,7 +365,7 @@ export default () => {
                   />
                 </div>
               </Show>
-              
+
               <p class={classes.muted}>Determines how long your unlocked private key is kept in memory.</p>
             </div>
 

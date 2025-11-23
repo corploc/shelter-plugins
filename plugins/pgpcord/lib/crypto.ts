@@ -8,6 +8,13 @@ declare const shelter: any;
 let cachedPrivateKey: openpgp.PrivateKey | null = null;
 let cacheTimestamp: number | null = null;
 
+export class PassphraseRequiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PassphraseRequiredError";
+  }
+}
+
 /**
  * Generates a new PGP key pair.
  */
@@ -30,12 +37,16 @@ export async function generateKeyPair(passphrase: string): Promise<UserKeyPair> 
  */
 export async function decryptAndCachePrivateKey(encryptedPrivateKey: string, passphrase: string): Promise<openpgp.PrivateKey> {
   const privateKey = await openpgp.readPrivateKey({ armoredKey: encryptedPrivateKey });
-  await privateKey.decrypt(passphrase);
-  
-  cachedPrivateKey = privateKey;
+
+  const decryptedKey = await openpgp.decryptKey({
+    privateKey,
+    passphrase
+  });
+
+  cachedPrivateKey = decryptedKey;
   cacheTimestamp = Date.now();
-  
-  return privateKey;
+
+  return decryptedKey;
 }
 
 /**
@@ -55,7 +66,7 @@ export function getCachedPrivateKey(): openpgp.PrivateKey | null {
       return null;
     }
   }
-  
+
   return cachedPrivateKey;
 }
 
@@ -91,18 +102,48 @@ export async function encryptMessage(message: string, recipientIds: string[]): P
   }
 
   const recipientPublicKeys = await Promise.all(
-    recipientKeysData.map(r => openpgp.readKey({ armoredKey: r.public_key }))
+    recipientKeysData.map(async r => {
+      try {
+        // Clean up the key string: trim whitespace and ensure correct newlines
+        // Also handle cases where newlines might be escaped as literal "\n" or just missing
+        let cleanedKey = r.public_key.trim();
+
+        // If it looks like it has literal "\n" characters, replace them
+        if (cleanedKey.includes('\\n')) {
+          cleanedKey = cleanedKey.replace(/\\n/g, '\n');
+        }
+
+        // Ensure headers are on their own lines if they got squashed
+        if (!cleanedKey.includes('\n') && cleanedKey.includes('-----BEGIN PGP PUBLIC KEY BLOCK-----')) {
+          cleanedKey = cleanedKey.replace('-----BEGIN PGP PUBLIC KEY BLOCK-----', '-----BEGIN PGP PUBLIC KEY BLOCK-----\n');
+          cleanedKey = cleanedKey.replace('-----END PGP PUBLIC KEY BLOCK-----', '\n-----END PGP PUBLIC KEY BLOCK-----');
+          // This is a very rough heuristic for squashed keys, might need more robust parsing if common
+        }
+
+        console.log(`PGPCord: Parsing key for ${r.discord_id}`, cleanedKey); // Debug log
+        return await openpgp.readKey({ armoredKey: cleanedKey });
+      } catch (e) {
+        console.error(`PGPCord: Failed to parse key for user ${r.discord_id}`, e);
+        return null;
+      }
+    })
   );
+
+  const validKeys = recipientPublicKeys.filter(k => k !== null) as openpgp.PublicKey[];
+
+  if (validKeys.length === 0) {
+    throw new Error("No valid recipient public keys could be parsed.");
+  }
 
   const ownKeyPair = loadKeyPairFromLocalStorage();
   if (!ownKeyPair) {
     throw new Error("Cannot encrypt message: Own key pair not found.");
   }
   const ownPublicKey = await openpgp.readKey({ armoredKey: ownKeyPair.publicKey });
-  
+
   const encryptedMessage = await openpgp.encrypt({
     message: await openpgp.createMessage({ text: message }),
-    encryptionKeys: [...recipientPublicKeys, ownPublicKey], // Also encrypt for self
+    encryptionKeys: [...validKeys, ownPublicKey], // Also encrypt for self
   });
 
   return encryptedMessage as string;
@@ -120,15 +161,11 @@ export async function decryptMessage(encryptedMessage: string): Promise<string> 
     const keyPair = loadKeyPairFromLocalStorage();
     if (!keyPair) throw new Error("No key pair found.");
 
-    // This is a placeholder for getting the passphrase from the user.
-    const passphrase = prompt("Your private key is locked. Please enter your passphrase:");
-    if (!passphrase) throw new Error("Passphrase not provided.");
-
-    privateKey = await decryptAndCachePrivateKey(keyPair.privateKey, passphrase);
+    throw new PassphraseRequiredError("Passphrase required to decrypt private key.");
   }
 
   const message = await openpgp.readMessage({ armoredMessage: encryptedMessage });
-  
+
   const { data: decrypted } = await openpgp.decrypt({
     message,
     decryptionKeys: privateKey,
@@ -138,25 +175,25 @@ export async function decryptMessage(encryptedMessage: string): Promise<string> 
 }
 
 export async function encryptPrivateKey(privateKeyArmored: string, passphrase: string): Promise<string> {
-    const privateKey = await openpgp.readPrivateKey({ armoredKey: privateKeyArmored });
-    if (!privateKey.isDecrypted()) {
-        return privateKeyArmored; // Already encrypted
-    }
-    const encryptedKey = await openpgp.encryptKey({
-        privateKey,
-        passphrase
-    });
-    return encryptedKey.armor();
+  const privateKey = await openpgp.readPrivateKey({ armoredKey: privateKeyArmored });
+  if (!privateKey.isDecrypted()) {
+    return privateKeyArmored; // Already encrypted
+  }
+  const encryptedKey = await openpgp.encryptKey({
+    privateKey,
+    passphrase
+  });
+  return encryptedKey.armor();
 }
 
 export async function decryptPrivateKey(privateKeyArmored: string, passphrase: string): Promise<string> {
-    const privateKey = await openpgp.readPrivateKey({ armoredKey: privateKeyArmored });
-    if (privateKey.isDecrypted()) {
-        return privateKeyArmored; // Already decrypted
-    }
-    const decryptedKey = await openpgp.decryptKey({
-        privateKey,
-        passphrase
-    });
-    return decryptedKey.armor();
+  const privateKey = await openpgp.readPrivateKey({ armoredKey: privateKeyArmored });
+  if (privateKey.isDecrypted()) {
+    return privateKeyArmored; // Already decrypted
+  }
+  const decryptedKey = await openpgp.decryptKey({
+    privateKey,
+    passphrase
+  });
+  return decryptedKey.armor();
 }

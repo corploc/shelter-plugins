@@ -111,6 +111,14 @@
   }
 }
 
+.codeBlock pre, .codeBlock code {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: var(--font-code);
+  margin: 0;
+  padding: 0;
+}
+
 .error {
   color: var(--text-danger);
   margin-bottom: 16px;
@@ -128,4 +136,20 @@
   overflow-x: auto;
   margin-bottom: 16px;
   user-select: text;
+}
+
+.copyButton {
+  padding: 4px 8px;
+  border-radius: 3px;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: var(--button-secondary-background);
+  color: var(--text-normal);
+  transition: background-color 0.17s ease;
+
+  &:hover {
+    background-color: var(--button-secondary-background-hover);
+  }
 }

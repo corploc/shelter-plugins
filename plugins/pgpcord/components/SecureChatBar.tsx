@@ -52,54 +52,67 @@ export default () => {
     setCurrentChannelId(channelId);
     setHasKeys(false);
     setHasCheckedKeys(false);
-    if (isSecureMode()) {
-      setSecureMode(false);
-    }
+    // Don't disable secure mode immediately; let checkKeys decide based on persistence
+    checkKeys(channelId);
   };
 
   const checkKeys = async (channelId: string) => {
-      setChecking(true);
-      try {
-          const channel = shelter.util?.getChannel?.(channelId) || shelter.flux?.stores?.ChannelStore?.getChannel(channelId);
-          if (!channel) {
-              setHasKeys(false);
-              return;
-          }
-
-          const recipientIds = channel.recipients || [];
-          if (recipientIds.length === 0) {
-              setHasKeys(false);
-              return;
-          }
-
-          const keys = await getPublicKeys(recipientIds);
-          const foundIds = new Set(keys.map(k => String(k.discord_id)));
-          const allFound = recipientIds.every((id: string) => foundIds.has(id));
-          
-          setHasKeys(allFound);
-          setHasCheckedKeys(true);
-          
-          if (!allFound && isSecureMode()) {
-              setSecureMode(false);
-          }
-
-      } catch (e) {
-          console.error("PGPCord: Error checking keys", e);
-          setHasKeys(false);
-      } finally {
-          setChecking(false);
+    setChecking(true);
+    try {
+      const channel = shelter.util?.getChannel?.(channelId) || shelter.flux?.stores?.ChannelStore?.getChannel(channelId);
+      if (!channel) {
+        setHasKeys(false);
+        setSecureMode(false);
+        return;
       }
+
+      const recipientIds = channel.recipients || [];
+      if (recipientIds.length === 0) {
+        setHasKeys(false);
+        setSecureMode(false);
+        return;
+      }
+
+      const keys = await getPublicKeys(recipientIds);
+      const foundIds = new Set(keys.map(k => String(k.discord_id)));
+      const allFound = recipientIds.every((id: string) => foundIds.has(id));
+
+      setHasKeys(allFound);
+      setHasCheckedKeys(true);
+
+      // Initialize lock state store if needed
+      if (!shelter.plugin.store.pgpcord_lock_state) {
+        shelter.plugin.store.pgpcord_lock_state = {};
+      }
+
+      if (allFound) {
+        // Check persistence
+        const storedState = shelter.plugin.store.pgpcord_lock_state[channelId];
+        // Default to true if undefined, otherwise use stored state
+        const shouldLock = storedState === undefined ? true : storedState;
+        setSecureMode(shouldLock);
+      } else {
+        setSecureMode(false);
+      }
+
+    } catch (e) {
+      console.error("PGPCord: Error checking keys", e);
+      setHasKeys(false);
+      setSecureMode(false);
+    } finally {
+      setChecking(false);
+    }
   };
 
   const interval = setInterval(() => {
-      if (!ref || !document.body.contains(ref)) {
-          clearInterval(interval);
-          return;
-      }
-      const channelId = shelter.flux?.stores?.SelectedChannelStore?.getChannelId();
-      if (channelId !== currentChannelId()) {
-          onChannelChange(channelId);
-      }
+    if (!ref || !document.body.contains(ref)) {
+      clearInterval(interval);
+      return;
+    }
+    const channelId = shelter.flux?.stores?.SelectedChannelStore?.getChannelId();
+    if (channelId !== currentChannelId()) {
+      onChannelChange(channelId);
+    }
   }, 200);
 
   onCleanup(() => clearInterval(interval));
@@ -108,9 +121,9 @@ export default () => {
     if (checking() || checkingCurrentUser()) return;
 
     if (!currentUserHasKey()) {
-        alert("You need to set up your PGP key in the PGPCord settings before you can send encrypted messages.");
-        // shelter.ui.openSettings("PGPCord"); // This would be ideal
-        return;
+      alert("You need to set up your PGP key in the PGPCord settings before you can send encrypted messages.");
+      // shelter.ui.openSettings("PGPCord"); // This would be ideal
+      return;
     }
 
     const channelId = currentChannelId();
@@ -121,18 +134,26 @@ export default () => {
 
     // After checking, the `hasKeys` signal is updated. Now we can act on it.
     if (hasKeys()) {
-        setSecureMode(!isSecureMode());
+      const newMode = !isSecureMode();
+      setSecureMode(newMode);
+
+      // Save state
+      if (!shelter.plugin.store.pgpcord_lock_state) {
+        shelter.plugin.store.pgpcord_lock_state = {};
+      }
+      shelter.plugin.store.pgpcord_lock_state[channelId] = newMode;
+
     } else {
-        const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgpcord.dev";
-        
-        const textarea = document.querySelector("form textarea") as HTMLTextAreaElement;
-        if (textarea) {
-            const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
-            nativeTextAreaValueSetter?.call(textarea, inviteText);
-            textarea.dispatchEvent(new Event('input', { bubbles: true }));
-        } else {
-            alert("Could not find chat bar to insert invite. Please send this link manually: https://pgpcord.dev");
-        }
+      const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgpcord.dev";
+
+      const textarea = document.querySelector("form textarea") as HTMLTextAreaElement;
+      if (textarea) {
+        const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+        nativeTextAreaValueSetter?.call(textarea, inviteText);
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      } else {
+        alert("Could not find chat bar to insert invite. Please send this link manually: https://pgpcord.dev");
+      }
     }
   };
 
@@ -177,11 +198,11 @@ export default () => {
   };
 
   return (
-    <div 
-        ref={ref}
-        class="secure-chat-bar-button" 
-        onClick={handleClick} 
-        title={getTitle()}
+    <div
+      ref={ref}
+      class="secure-chat-bar-button"
+      onClick={handleClick}
+      title={getTitle()}
     >
       <LockIcon locked={isSecureMode()} disabled={!currentUserHasKey() || (!hasKeys() && hasCheckedKeys())} />
     </div>
