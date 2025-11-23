@@ -1,6 +1,7 @@
-import { createSignal, onCleanup, onMount } from "solid-js";
-import { isSecureMode, setSecureMode } from "../lib/store";
-import { getPublicKeys, checkCurrentUserKey } from "../lib/api";
+import { createSignal, onMount, onCleanup, createEffect } from "solid-js";
+import { checkCurrentUserKey, getPublicKeys } from "../lib/api";
+import { isSecureMode as globalIsSecureMode, setSecureMode as setGlobalSecureMode } from "../lib/store";
+import { reprocessMessages } from "../patches/Message";
 
 declare const shelter: any;
 
@@ -33,20 +34,99 @@ const LockIcon = (props: { locked: boolean, disabled?: boolean }) => (
 );
 
 export default () => {
+  const [isSecureMode, setSecureMode] = createSignal(globalIsSecureMode());
   const [currentUserHasKey, setCurrentUserHasKey] = createSignal(false);
   const [checkingCurrentUser, setCheckingCurrentUser] = createSignal(true);
   const [hasKeys, setHasKeys] = createSignal(false);
   const [checking, setChecking] = createSignal(false);
-  const [currentChannelId, setCurrentChannelId] = createSignal<string | null>(null);
   const [hasCheckedKeys, setHasCheckedKeys] = createSignal(false);
+  const [currentChannelId, setCurrentChannelId] = createSignal("");
   let ref: HTMLDivElement | undefined;
+
+  // Sync with global store
+  createEffect(() => {
+    setSecureMode(globalIsSecureMode());
+  });
 
   onMount(async () => {
     setCheckingCurrentUser(true);
-    const userHasKey = await checkCurrentUserKey();
-    setCurrentUserHasKey(userHasKey);
+    const userKey = await checkCurrentUserKey();
+    setCurrentUserHasKey(!!userKey);
     setCheckingCurrentUser(false);
+
+    const channelId = shelter.flux?.stores?.SelectedChannelStore?.getChannelId();
+    if (channelId) onChannelChange(channelId);
+
+    const unsubscribe = shelter.flux.stores.SelectedChannelStore.addChangeListener(() => {
+      const newChannelId = shelter.flux?.stores?.SelectedChannelStore?.getChannelId();
+      if (newChannelId && newChannelId !== currentChannelId()) {
+        onChannelChange(newChannelId);
+      }
+    });
+
+    onCleanup(() => unsubscribe());
   });
+
+  const checkKeys = async (channelId: string) => {
+    setChecking(true);
+    try {
+      const currentUser = shelter.flux.stores.UserStore.getCurrentUser();
+      if (!currentUser) return;
+
+      // Check if we have our own keys
+      const ownKey = await checkCurrentUserKey();
+      if (!ownKey) {
+        setHasKeys(false);
+        setHasCheckedKeys(true);
+        setGlobalSecureMode(false);
+        return;
+      }
+
+      // Check recipients
+      const channel = shelter.util?.getChannel?.(channelId) || shelter.flux?.stores?.ChannelStore?.getChannel(channelId);
+      if (!channel) return;
+
+      const recipientIds = channel.recipients ? channel.recipients : [channel.id]; // DM or Group DM
+      // Filter out self
+      const otherRecipients = recipientIds.filter((id: string) => id !== currentUser.id);
+
+      if (otherRecipients.length === 0) {
+        // Saved Messages or just self
+        setHasKeys(true);
+        setHasCheckedKeys(true);
+        return;
+      }
+
+      const keys = await getPublicKeys(otherRecipients);
+      const allFound = keys.length === otherRecipients.length;
+
+      setHasKeys(allFound);
+      setHasCheckedKeys(true);
+
+      // Persistence Logic
+      if (!shelter.plugin.store.pgpcord_lock_state) {
+        shelter.plugin.store.pgpcord_lock_state = {};
+      }
+
+      if (allFound) {
+        const storedState = shelter.plugin.store.pgpcord_lock_state[channelId];
+        const shouldLock = storedState === undefined ? true : storedState;
+        setGlobalSecureMode(shouldLock);
+      } else {
+        setGlobalSecureMode(false);
+      }
+
+      // Trigger reprocessing to apply visibility based on the new mode
+      setTimeout(reprocessMessages, 100);
+
+    } catch (e) {
+      console.error("PGPCord: Error checking keys", e);
+      setHasKeys(false);
+      setGlobalSecureMode(false);
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const onChannelChange = (channelId: string) => {
     setCurrentChannelId(channelId);
@@ -55,67 +135,6 @@ export default () => {
     // Don't disable secure mode immediately; let checkKeys decide based on persistence
     checkKeys(channelId);
   };
-
-  const checkKeys = async (channelId: string) => {
-    setChecking(true);
-    try {
-      const channel = shelter.util?.getChannel?.(channelId) || shelter.flux?.stores?.ChannelStore?.getChannel(channelId);
-      if (!channel) {
-        setHasKeys(false);
-        setSecureMode(false);
-        return;
-      }
-
-      const recipientIds = channel.recipients || [];
-      if (recipientIds.length === 0) {
-        setHasKeys(false);
-        setSecureMode(false);
-        return;
-      }
-
-      const keys = await getPublicKeys(recipientIds);
-      const foundIds = new Set(keys.map(k => String(k.discord_id)));
-      const allFound = recipientIds.every((id: string) => foundIds.has(id));
-
-      setHasKeys(allFound);
-      setHasCheckedKeys(true);
-
-      // Initialize lock state store if needed
-      if (!shelter.plugin.store.pgpcord_lock_state) {
-        shelter.plugin.store.pgpcord_lock_state = {};
-      }
-
-      if (allFound) {
-        // Check persistence
-        const storedState = shelter.plugin.store.pgpcord_lock_state[channelId];
-        // Default to true if undefined, otherwise use stored state
-        const shouldLock = storedState === undefined ? true : storedState;
-        setSecureMode(shouldLock);
-      } else {
-        setSecureMode(false);
-      }
-
-    } catch (e) {
-      console.error("PGPCord: Error checking keys", e);
-      setHasKeys(false);
-      setSecureMode(false);
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  const interval = setInterval(() => {
-    if (!ref || !document.body.contains(ref)) {
-      clearInterval(interval);
-      return;
-    }
-    const channelId = shelter.flux?.stores?.SelectedChannelStore?.getChannelId();
-    if (channelId !== currentChannelId()) {
-      onChannelChange(channelId);
-    }
-  }, 200);
-
-  onCleanup(() => clearInterval(interval));
 
   const handleClick = async () => {
     if (checking() || checkingCurrentUser()) return;
@@ -129,20 +148,22 @@ export default () => {
     const channelId = currentChannelId();
     if (!channelId) return;
 
-    // Always check for keys on click
-    await checkKeys(channelId);
+    // If we haven't checked keys yet (e.g. failed initially), check now
+    if (!hasCheckedKeys()) {
+      await checkKeys(channelId);
+    }
 
-    // After checking, the `hasKeys` signal is updated. Now we can act on it.
     if (hasKeys()) {
       const newMode = !isSecureMode();
-      setSecureMode(newMode);
+      setGlobalSecureMode(newMode);
 
-      // Save state
       if (!shelter.plugin.store.pgpcord_lock_state) {
         shelter.plugin.store.pgpcord_lock_state = {};
       }
       shelter.plugin.store.pgpcord_lock_state[channelId] = newMode;
 
+      // Reprocess messages
+      reprocessMessages();
     } else {
       const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgpcord.dev";
 

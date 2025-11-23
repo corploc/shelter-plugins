@@ -35,8 +35,23 @@ export async function generateKeyPair(passphrase: string): Promise<UserKeyPair> 
 /**
  * Decrypts a PGP private key using a passphrase and caches it.
  */
-export async function decryptAndCachePrivateKey(encryptedPrivateKey: string, passphrase: string): Promise<openpgp.PrivateKey> {
-  const privateKey = await openpgp.readPrivateKey({ armoredKey: encryptedPrivateKey });
+export async function decryptAndCachePrivateKey(passphrase: string): Promise<openpgp.PrivateKey> {
+  const keyPair = loadKeyPairFromLocalStorage();
+  if (!keyPair) {
+    throw new Error("No key pair found in local storage.");
+  }
+
+  console.log("PGPCord: Loading private key from storage. Length:", keyPair.privateKey.length);
+  console.log("PGPCord: Private key start:", keyPair.privateKey.substring(0, 50));
+
+  // Clean up key if needed (similar to message cleaning)
+  let cleanedKey = keyPair.privateKey.trim();
+  if (cleanedKey.includes('\\n')) {
+    console.log("PGPCord: Detected literal \\n in private key, fixing...");
+    cleanedKey = cleanedKey.replace(/\\n/g, '\n');
+  }
+
+  const privateKey = await openpgp.readPrivateKey({ armoredKey: cleanedKey });
 
   const decryptedKey = await openpgp.decryptKey({
     privateKey,
@@ -164,7 +179,22 @@ export async function decryptMessage(encryptedMessage: string): Promise<string> 
     throw new PassphraseRequiredError("Passphrase required to decrypt private key.");
   }
 
-  const message = await openpgp.readMessage({ armoredMessage: encryptedMessage });
+  // Clean up the message string
+  let cleanedMessage = encryptedMessage.trim();
+  console.log("PGPCord: Decrypting message (raw length):", encryptedMessage.length);
+  console.log("PGPCord: Decrypting message (first 50 chars):", encryptedMessage.substring(0, 50));
+
+  if (cleanedMessage.includes('\\n')) {
+    cleanedMessage = cleanedMessage.replace(/\\n/g, '\n');
+  }
+
+  // Ensure headers are correct if they got squashed
+  if (!cleanedMessage.includes('\n') && cleanedMessage.includes('-----BEGIN PGP MESSAGE-----')) {
+    cleanedMessage = cleanedMessage.replace('-----BEGIN PGP MESSAGE-----', '-----BEGIN PGP MESSAGE-----\n');
+    cleanedMessage = cleanedMessage.replace('-----END PGP MESSAGE-----', '\n-----END PGP MESSAGE-----');
+  }
+
+  const message = await openpgp.readMessage({ armoredMessage: cleanedMessage });
 
   const { data: decrypted } = await openpgp.decrypt({
     message,

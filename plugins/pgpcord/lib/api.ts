@@ -5,7 +5,7 @@ const SUPABASE_URL = 'https://pkbbwljgdyblxtroicpd.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_aiZeSeoUYh5roraVYEA8Bw_8cvn7ewe';
 
 // Assume Shelter provides access to Discord's internals, like the current user and OIDC token.
-declare const shelter: any; 
+declare const shelter: any;
 
 const publicKeyCache = new Map<string, { key: PublicKeyRecord | null, timestamp: number }>();
 const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
@@ -33,7 +33,7 @@ export async function getPublicKeys(userIds: string[]): Promise<PublicKeyRecord[
   }
 
   if (missingIds.length === 0) {
-      return cachedKeys;
+    return cachedKeys;
   }
 
   const query = new URLSearchParams();
@@ -47,88 +47,88 @@ export async function getPublicKeys(userIds: string[]): Promise<PublicKeyRecord[
 
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/user_keys?${query.toString()}`, {
-        method: 'GET',
-        headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        }
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      }
     });
 
     if (!response.ok) {
-        const error = await response.json();
-        console.error("Supabase select error:", error);
-        throw new Error("Failed to fetch public keys.");
+      const error = await response.json();
+      console.error("Supabase select error:", error);
+      throw new Error("Failed to fetch public keys.");
     }
 
     const data: PublicKeyRecord[] = await response.json();
-    
+
     // Update cache with found keys
     for (const record of data) {
-        publicKeyCache.set(record.discord_id, { key: record, timestamp: now });
+      publicKeyCache.set(record.discord_id, { key: record, timestamp: now });
     }
 
     // Mark missing keys as null in cache to avoid repeated 404 fetches (negative caching)
     const foundIds = new Set(data.map(r => r.discord_id));
     for (const id of missingIds) {
-        if (!foundIds.has(id)) {
-            publicKeyCache.set(id, { key: null, timestamp: now });
-        }
+      if (!foundIds.has(id)) {
+        publicKeyCache.set(id, { key: null, timestamp: now });
+      }
     }
 
     return [...cachedKeys, ...(data || [])];
   } catch (e) {
-      console.error("PGPCord: Error fetching keys", e);
-      return cachedKeys; // Return what we have
+    console.error("PGPCord: Error fetching keys", e);
+    return cachedKeys; // Return what we have
   }
 }
 
-let currentUserKeyCache: { hasKey: boolean, timestamp: number } | null = null;
+let currentUserKeyCache: { key: PublicKeyRecord | null, timestamp: number } | null = null;
 
 /**
  * Checks if the current user has a public key registered.
- * @returns A promise that resolves to true if a key is found, false otherwise.
+ * @returns A promise that resolves to the key record if found, null otherwise.
  */
-export async function checkCurrentUserKey(): Promise<boolean> {
+export async function checkCurrentUserKey(): Promise<PublicKeyRecord | null> {
   const now = Date.now();
   if (currentUserKeyCache && (now - currentUserKeyCache.timestamp < CACHE_TTL)) {
-      return currentUserKeyCache.hasKey;
+    return currentUserKeyCache.key;
   }
 
   const userId = shelter.flux.stores.UserStore.getCurrentUser()?.id;
   if (!userId) {
     console.error('PGPCord: Could not get current user ID.');
-    return false;
+    return null;
   }
 
   const query = new URLSearchParams({
-    select: 'discord_id',
+    select: '*', // Select all fields to get the key content
     discord_id: `eq.${userId}`,
   });
 
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/user_keys?${query.toString()}`, {
-        method: 'GET',
-        headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'Accept': 'application/vnd.pgrst.object+json', // Prefer single object
-        }
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Accept': 'application/vnd.pgrst.object+json', // Prefer single object
+      }
     });
 
     if (!response.ok) {
-        console.error("Supabase check error:", await response.text());
-        return false;
+      console.error("Supabase check error:", await response.text());
+      return null;
     }
 
     // PostgREST returns an empty body for GET with no results, but response.ok is true.
     // So we need to check if we can parse it as JSON.
     const data = await response.json();
-    const hasKey = !!data;
-    currentUserKeyCache = { hasKey, timestamp: now };
-    return hasKey;
+    const keyRecord = data as PublicKeyRecord;
+    currentUserKeyCache = { key: keyRecord, timestamp: now };
+    return keyRecord;
   } catch (e) {
     // If JSON parsing fails, it likely means empty body (no key)
-    currentUserKeyCache = { hasKey: false, timestamp: now };
-    return false; 
+    currentUserKeyCache = { key: null, timestamp: now };
+    return null;
   }
 }

@@ -40,7 +40,7 @@ export default () => {
   };
 
   // Key status check - initialize from store
-  const [keyStatus, setKeyStatus] = createSignal<"idle" | "checking" | "found" | "not_found">(
+  const [keyStatus, setKeyStatus] = createSignal<"idle" | "checking" | "found" | "not_found" | "mismatch">(
     getSettings().lastKnownKeyStatus || 'idle'
   );
 
@@ -179,8 +179,21 @@ export default () => {
   const handleCheckStatus = async () => {
     setKeyStatus("checking");
     try {
-      const exists = await checkCurrentUserKey();
-      const status = exists ? "found" : "not_found";
+      const serverKeyRecord = await checkCurrentUserKey();
+      const localKeys = keyPair();
+
+      let status: "found" | "not_found" | "mismatch" = "not_found";
+
+      if (serverKeyRecord) {
+        if (localKeys && serverKeyRecord.public_key.trim() === localKeys.publicKey.trim()) {
+          status = "found";
+        } else {
+          status = "mismatch";
+        }
+      } else {
+        status = "not_found";
+      }
+
       setKeyStatus(status);
       updateSettings({ lastKnownKeyStatus: status });
     } catch (e) {
@@ -313,10 +326,10 @@ export default () => {
                   </button>
                   <Show when={keyStatus() !== "idle"}>
                     <span style={{
-                      color: keyStatus() === "found" ? "var(--text-positive)" : "var(--text-danger)",
+                      color: keyStatus() === "found" ? "var(--text-positive)" : (keyStatus() === "mismatch" ? "var(--text-warning)" : "var(--text-danger)"),
                       "font-weight": "bold"
                     }}>
-                      {keyStatus() === "found" ? "Key Found on Server" : "Key Not Found on Server"}
+                      {keyStatus() === "found" ? "Key Found on Server" : (keyStatus() === "mismatch" ? "Key Mismatch" : "Key Not Found on Server")}
                     </span>
                   </Show>
                 </div>
