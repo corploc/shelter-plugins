@@ -10,8 +10,14 @@ const PGP_BLOCK_REGEX = /-----BEGIN PGP MESSAGE-----(.|\n)*-----END PGP MESSAGE-
 
 let unobserve: (() => void) | null = null;
 
-// Cache for original message content: MessageID -> { content, isFile, channelId }
-const messageCache = new Map<string, { content: string; isFile: boolean; channelId: string }>();
+// Cache for message content: MessageID -> { encrypted, decrypted, isFile, channelId, state }
+const messageCache = new Map<string, {
+    encrypted: string;
+    decrypted?: string;
+    isFile: boolean;
+    channelId: string;
+    state: "encrypted" | "decrypted" | "wrong_key" | "passphrase_required";
+}>();
 
 // Helper to update message content via Flux
 const updateMessageContent = (messageId: string, channelId: string, newContent: string) => {
@@ -53,12 +59,18 @@ const getMessageId = (element: Element): string | null => {
 
 const DecryptedMessageContainer = (props: { encryptedContent: string, messageId: string, channelId: string }) => {
     const [content, setContent] = createSignal("");
-    const [state, setState] = createSignal<"decrypting" | "decrypted" | "error" | "waiting_for_passphrase">("decrypting");
+    const [state, setState] = createSignal<"decrypting" | "decrypted" | "error" | "waiting_for_passphrase" | "wrong_key">("decrypting");
     const [passphrase, setPassphrase] = createSignal("");
 
     const attemptDecryption = async () => {
         try {
             const decrypted = await decryptMessage(props.encryptedContent);
+            // Store in cache
+            const cached = messageCache.get(props.messageId);
+            if (cached) {
+                cached.decrypted = decrypted;
+                cached.state = "decrypted";
+            }
             // If successful, we want to trigger native rendering
             // We do this by updating the message in the store
             updateMessageContent(props.messageId, props.channelId, decrypted);
@@ -66,6 +78,12 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
         } catch (err) {
             if (err instanceof PassphraseRequiredError) {
                 setState("waiting_for_passphrase");
+                const cached = messageCache.get(props.messageId);
+                if (cached) cached.state = "passphrase_required";
+            } else if (err.name === "WrongKeyError") {
+                setState("wrong_key");
+                const cached = messageCache.get(props.messageId);
+                if (cached) cached.state = "wrong_key";
             } else {
                 console.error("PGPCord: Decryption failed", err);
                 setState("error");
@@ -83,8 +101,10 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
             // Private key is now cached, re-attempt decryption
             await attemptDecryption();
 
-            // Also reprocess other messages in the channel to unlock them automatically
-            reprocessMessages();
+            // If successful, reprocess other messages in the channel to unlock them automatically
+            if (state() === "decrypted") {
+                reprocessMessages();
+            }
         } catch (err) {
             console.error("PGPCord: Passphrase incorrect or decryption failed", err);
             setState("error");
@@ -145,6 +165,18 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
                 </div>
             </Show>
 
+            <Show when={state() === "wrong_key"}>
+                <div style={{ "display": "flex", "flex-direction": "column", "gap": "8px", "color": "var(--text-muted)" }}>
+                    <div style={{ "display": "flex", "align-items": "center", "gap": "8px" }}>
+                        <span style={{ "font-size": "1.2em" }}>🔑</span>
+                        <span style={{ "font-weight": "600" }}>Encrypted with a different key</span>
+                    </div>
+                    <div style={{ "font-size": "12px" }}>
+                        This message cannot be decrypted with your current private key. It may have been encrypted with an old key or for a different user.
+                    </div>
+                </div>
+            </Show>
+
             <Show when={state() === "decrypting"}>
                 <div style={{ "display": "flex", "align-items": "center", "gap": "8px", "color": "var(--text-normal)" }}>
                     <div class="spinner-dots" style={{ "width": "20px", "height": "20px", "border": "2px solid var(--text-muted)", "border-top-color": "var(--brand-experiment)", "border-radius": "50%", "animation": "spin 1s linear infinite" }}></div>
@@ -181,9 +213,40 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
     );
 };
 
-const applyMessageVisibility = (messageId: string, channelId: string, originalContent: string) => {
+const applyMessageVisibility = async (messageId: string, channelId: string, encryptedContent: string) => {
+    const cached = messageCache.get(messageId);
+
     const secure = isSecureMode();
     const privateKey = getCachedPrivateKey(); // Check if unlocked
+
+    // If already processed and has a definitive state, handle appropriately
+    if (cached) {
+        if (cached.state === "decrypted" && cached.decrypted) {
+            // Already decrypted, just update
+            if (secure) {
+                updateMessageContent(messageId, channelId, cached.decrypted);
+            } else {
+                updateMessageContent(messageId, channelId, "🔒 Encrypted Message");
+            }
+            return;
+        } else if (cached.state === "wrong_key") {
+            // Wrong key - show PGP block in secure mode so UI can display error
+            if (secure) {
+                updateMessageContent(messageId, channelId, encryptedContent);
+            } else {
+                updateMessageContent(messageId, channelId, "🔒 Encrypted Message");
+            }
+            return;
+        } else if (cached.state === "passphrase_required") {
+            // Needs passphrase - show PGP block in secure mode so UI can prompt
+            if (secure) {
+                updateMessageContent(messageId, channelId, encryptedContent);
+            } else {
+                updateMessageContent(messageId, channelId, "🔒 Encrypted Message");
+            }
+            return;
+        }
+    }
 
     if (!secure) {
         // Normal Mode: Hide content
@@ -191,24 +254,46 @@ const applyMessageVisibility = (messageId: string, channelId: string, originalCo
     } else {
         // Secure Mode
         if (privateKey) {
-            // Unlocked: Decrypt and show natively
-            decryptMessage(originalContent).then(decrypted => {
+            // Unlocked: Try to decrypt (but only once)
+            try {
+                const decrypted = await decryptMessage(encryptedContent);
+                if (cached) {
+                    cached.decrypted = decrypted;
+                    cached.state = "decrypted";
+                }
                 updateMessageContent(messageId, channelId, decrypted);
-            }).catch(err => {
-                // If decryption fails (e.g. wrong key), revert to PGP block so UI can show error/prompt
-                updateMessageContent(messageId, channelId, originalContent);
-            });
+            } catch (err) {
+                if (err.name === "WrongKeyError") {
+                    if (cached) cached.state = "wrong_key";
+                    // Don't update the message - return to let the UI component show
+                    return;
+                } else {
+                    // For other errors, mark as passphrase_required to avoid retry
+                    if (cached) cached.state = "passphrase_required";
+                    // Show PGP block for errors (triggers UI injection)
+                    updateMessageContent(messageId, channelId, encryptedContent);
+                }
+            }
         } else {
             // Locked: Show PGP block (which triggers UI injection)
-            updateMessageContent(messageId, channelId, originalContent);
+            if (cached) cached.state = "passphrase_required";
+            updateMessageContent(messageId, channelId, encryptedContent);
         }
     }
 };
 
 export const reprocessMessages = () => {
     console.log("PGPCord: Reprocessing messages...");
+
+    // Clear all cached states except encrypted content
+    // This forces re-evaluation based on current mode
     messageCache.forEach((data, messageId) => {
-        applyMessageVisibility(messageId, data.channelId, data.content);
+        // Reset state to encrypted to allow re-processing
+        data.state = "encrypted";
+        // Clear decrypted content to force fresh decryption
+        delete data.decrypted;
+
+        applyMessageVisibility(messageId, data.channelId, data.encrypted);
     });
 };
 
@@ -222,7 +307,7 @@ const handleEncryptedText = (element: Element, text: string) => {
     // Cache if new
     if (!messageCache.has(messageId)) {
         const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
-        messageCache.set(messageId, { content: text, isFile: false, channelId });
+        messageCache.set(messageId, { encrypted: text, isFile: false, channelId, state: "encrypted" });
         // Initial visibility check
         applyMessageVisibility(messageId, channelId, text);
         // If we just dispatched an update, this element might be removed/replaced.
@@ -235,15 +320,27 @@ const handleEncryptedText = (element: Element, text: string) => {
     // If unlocked, applyMessageVisibility would have replaced it with decrypted text,
     // so we wouldn't be seeing the PGP block (unless decryption failed or race condition).
 
-    // Check if we need to show password UI
-    const privateKey = getCachedPrivateKey();
-    if (!privateKey) {
+    // Check if we need to show UI based on cached state
+    const cached = messageCache.get(messageId);
+    const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
+
+    // If message is in wrong_key state, show that UI
+    if (cached?.state === "wrong_key") {
         element.setAttribute("data-pgpcord-injected", "true");
         element.innerHTML = "";
         const container = document.createElement("div");
         element.appendChild(container);
-        // We need channelId here too. We can get it from cache or store.
-        const channelId = messageCache.get(messageId)?.channelId || shelter.flux.stores.SelectedChannelStore.getChannelId();
+        render(() => <DecryptedMessageContainer encryptedContent={text} messageId={messageId} channelId={channelId} />, container);
+        return;
+    }
+
+    // Only show password UI if key is locked AND state is passphrase_required
+    const privateKey = getCachedPrivateKey();
+    if (!privateKey && cached?.state === "passphrase_required") {
+        element.setAttribute("data-pgpcord-injected", "true");
+        element.innerHTML = "";
+        const container = document.createElement("div");
+        element.appendChild(container);
         render(() => <DecryptedMessageContainer encryptedContent={text} messageId={messageId} channelId={channelId} />, container);
     }
 };
@@ -252,7 +349,7 @@ const handleEncryptedFile = async (attachmentElement: Element, messageId: string
     // Check if already handled
     if (messageCache.has(messageId)) {
         const data = messageCache.get(messageId)!;
-        applyMessageVisibility(messageId, data.channelId, data.content);
+        applyMessageVisibility(messageId, data.channelId, data.encrypted);
         // Ensure attachment is hidden if we have cached content
         (attachmentElement as HTMLElement).style.display = "none";
         return;
@@ -290,7 +387,7 @@ const handleEncryptedFile = async (attachmentElement: Element, messageId: string
         if (PGP_BLOCK_REGEX.test(textContent)) {
             // Cache it
             const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
-            messageCache.set(messageId, { content: textContent, isFile: true, channelId });
+            messageCache.set(messageId, { encrypted: textContent, isFile: true, channelId, state: "encrypted" });
             // Apply visibility (this updates the store and should remove attachment from render)
             applyMessageVisibility(messageId, channelId, textContent);
         } else {

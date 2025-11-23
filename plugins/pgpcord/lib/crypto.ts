@@ -53,6 +53,14 @@ export async function decryptAndCachePrivateKey(passphrase: string): Promise<ope
 
   const privateKey = await openpgp.readPrivateKey({ armoredKey: cleanedKey });
 
+  // Check if the key is already decrypted
+  if (privateKey.isDecrypted()) {
+    console.log("PGPCord: Private key is already decrypted, caching directly.");
+    cachedPrivateKey = privateKey;
+    cacheTimestamp = Date.now();
+    return privateKey;
+  }
+
   const decryptedKey = await openpgp.decryptKey({
     privateKey,
     passphrase
@@ -164,21 +172,17 @@ export async function encryptMessage(message: string, recipientIds: string[]): P
   return encryptedMessage as string;
 }
 
+export class WrongKeyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "WrongKeyError";
+  }
+}
+
 /**
  * Decrypts a PGP message.
  */
 export async function decryptMessage(encryptedMessage: string): Promise<string> {
-  let privateKey = getCachedPrivateKey();
-
-  if (!privateKey) {
-    // In a real implementation, this would trigger a UI prompt for the passphrase.
-    // For now, we rely on the key being pre-cached.
-    const keyPair = loadKeyPairFromLocalStorage();
-    if (!keyPair) throw new Error("No key pair found.");
-
-    throw new PassphraseRequiredError("Passphrase required to decrypt private key.");
-  }
-
   // Clean up the message string
   let cleanedMessage = encryptedMessage.trim();
   console.log("PGPCord: Decrypting message (raw length):", encryptedMessage.length);
@@ -195,6 +199,38 @@ export async function decryptMessage(encryptedMessage: string): Promise<string> 
   }
 
   const message = await openpgp.readMessage({ armoredMessage: cleanedMessage });
+
+  // Optimization: Check if the message is encrypted for our key ID
+  const keyPair = loadKeyPairFromLocalStorage();
+  if (!keyPair) throw new Error("No key pair found.");
+
+  const encryptionKeyIds = message.getEncryptionKeyIDs();
+
+  // Load the private key to get ALL key IDs (master + subkeys)
+  const privateKeyFromStorage = await openpgp.readPrivateKey({ armoredKey: keyPair.privateKey });
+  const allKeyIds = privateKeyFromStorage.getKeyIDs().map((k: any) => k.toHex().toLowerCase());
+
+  console.log("PGPCord: My key IDs (including subkeys):", allKeyIds);
+  console.log("PGPCord: Message encrypted for key IDs:", encryptionKeyIds.map((k: any) => k.toHex()));
+
+  // Check if any of the message's encryption keys match any of our keys
+  const isForMe = encryptionKeyIds.some((msgKeyId: any) =>
+    allKeyIds.includes(msgKeyId.toHex().toLowerCase())
+  );
+  console.log("PGPCord: Is message for me?", isForMe);
+
+  if (!isForMe) {
+    console.warn("PGPCord: Message is not encrypted for any of my keys", allKeyIds, "Message key IDs:", encryptionKeyIds.map((k: any) => k.toHex()));
+    throw new WrongKeyError("Message not encrypted for this key.");
+  }
+
+  let privateKey = getCachedPrivateKey();
+
+  if (!privateKey) {
+    // In a real implementation, this would trigger a UI prompt for the passphrase.
+    // For now, we rely on the key being pre-cached.
+    throw new PassphraseRequiredError("Passphrase required to decrypt private key.");
+  }
 
   const { data: decrypted } = await openpgp.decrypt({
     message,
