@@ -58,6 +58,50 @@ export default () => {
     window.open("https://pgpcord.zerostats.dev/upload", "_blank");
   };
 
+  const handleExportKeys = () => {
+      const keys = keyPair();
+      if (!keys) return;
+      
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(keys, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "pgpcord_keys.json");
+      document.body.appendChild(downloadAnchorNode); // required for firefox
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+  };
+
+  const handleImportKeys = (event: Event) => {
+      const input = event.target as HTMLInputElement;
+      if (!input.files || input.files.length === 0) return;
+
+      const file = input.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+          try {
+              const content = e.target?.result as string;
+              const parsed = JSON.parse(content);
+              
+              if (parsed.publicKey && parsed.privateKey && parsed.keyId) {
+                  saveKeyPairToLocalStorage(parsed);
+                  setKeyPair(parsed);
+                  setError(null);
+                  alert("Keys imported successfully!");
+              } else {
+                  throw new Error("Invalid key file format.");
+              }
+          } catch (err) {
+              console.error("Import failed:", err);
+              setError("Failed to import keys. Invalid file format.");
+          }
+      };
+      
+      reader.readAsText(file);
+      // Reset input
+      input.value = "";
+  };
+
   return (
     <div class={classes.container}>
       <h2 class={classes.header}>PGPCord Settings</h2>
@@ -98,6 +142,14 @@ export default () => {
               >
                 Generate Keys
               </button>
+
+              <div class={classes.inputGroup} style={{ "margin-top": "16px", "border-top": "1px solid var(--background-modifier-accent)", "padding-top": "16px" }}>
+                  <h4 class={classes.subHeader}>Or Import Existing Keys</h4>
+                  <label class={classes.secondaryButton} style={{ display: "inline-block", cursor: "pointer" }}>
+                      Import Keys from JSON
+                      <input type="file" accept=".json" onChange={handleImportKeys} style={{ display: "none" }} />
+                  </label>
+              </div>
             </div>
           </Show>
         }
@@ -112,14 +164,17 @@ export default () => {
                 <div class={classes.codeBlock}>{kp.publicKey}</div>
               </div>
               
-              <div class={classes.inputGroup}>
+              <div class={classes.inputGroup} style={{ display: "flex", gap: "8px" }}>
                  <button class={classes.secondaryButton} onClick={handlePublishKey}>
-                    Publish Public Key to Directory
+                    Publish Public Key
                  </button>
-                 <p class={classes.muted} style={{ "margin-top": "8px" }}>
-                   This will open an external website where you can authenticate with Discord to publish your key.
-                 </p>
+                 <button class={classes.secondaryButton} onClick={handleExportKeys}>
+                    Export Keys Backup
+                 </button>
               </div>
+              <p class={classes.muted}>
+                   Publishing opens an external website. Exporting downloads a JSON file with your private key - keep it safe!
+              </p>
             </div>
 
             <div class={classes.section}>
