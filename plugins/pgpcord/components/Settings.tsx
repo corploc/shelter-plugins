@@ -64,6 +64,16 @@ export default () => {
     window.open("https://pgpcord.zerostats.dev/upload", "_blank");
   };
 
+  const handleDeleteKeys = () => {
+      if (confirm("Are you sure you want to delete your keys? This action cannot be undone and you will lose access to all encrypted messages.")) {
+          saveKeyPairToLocalStorage(null as any); // Clear storage
+          setKeyPair(null);
+          setPassphrase("");
+          // Redirect to delete user on server
+          window.open("https://pgpcord.zerostats.dev/delete", "_blank");
+      }
+  };
+
   const initiateExport = () => {
       setModalMode("export");
       setModalPassword("");
@@ -256,8 +266,13 @@ export default () => {
                     Export Keys Backup
                  </button>
               </div>
+              <div class={classes.inputGroup} style={{ "margin-top": "8px" }}>
+                 <button class={classes.secondaryButton} style={{ "background-color": "var(--button-danger-background)", color: "var(--white)" }} onClick={handleDeleteKeys}>
+                    Delete Keys & Account
+                 </button>
+              </div>
               <p class={classes.muted}>
-                   Publishing opens an external website. Exporting downloads a JSON file with your private key - keep it safe!
+                   Publishing opens an external website. Exporting downloads a JSON file with your private key - keep it safe! Deleting will remove keys locally and open the deletion page.
               </p>
             </div>
 
