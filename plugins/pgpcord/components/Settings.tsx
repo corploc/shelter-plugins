@@ -1,5 +1,5 @@
 import { createSignal, Show, onMount } from "solid-js";
-import { generateKeyPair, saveKeyPairToLocalStorage, loadKeyPairFromLocalStorage } from "../lib/crypto";
+import { generateKeyPair, saveKeyPairToLocalStorage, loadKeyPairFromLocalStorage, encryptPrivateKey, decryptPrivateKey } from "../lib/crypto";
 import { UserKeyPair, PluginSettings, CacheDuration } from "../lib/types";
 import classes from "./settings.scss";
 
@@ -16,6 +16,12 @@ export default () => {
   const [passphrase, setPassphrase] = createSignal("");
   const [isGenerating, setIsGenerating] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
+  
+  // Modal state
+  const [showModal, setShowModal] = createSignal(false);
+  const [modalMode, setModalMode] = createSignal<"export" | "import">("export");
+  const [modalPassword, setModalPassword] = createSignal("");
+  const [pendingImportFile, setPendingImportFile] = createSignal<File | null>(null);
   
   // Use shelter store directly for settings where possible, but we need a local signal for the form
   // or we can just read/write to store.
@@ -58,53 +64,131 @@ export default () => {
     window.open("https://pgpcord.zerostats.dev/upload", "_blank");
   };
 
-  const handleExportKeys = () => {
-      const keys = keyPair();
-      if (!keys) return;
-      
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(keys, null, 2));
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", "pgpcord_keys.json");
-      document.body.appendChild(downloadAnchorNode); // required for firefox
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
+  const initiateExport = () => {
+      setModalMode("export");
+      setModalPassword("");
+      setShowModal(true);
   };
 
-  const handleImportKeys = (event: Event) => {
+  const initiateImport = (event: Event) => {
       const input = event.target as HTMLInputElement;
       if (!input.files || input.files.length === 0) return;
+      setPendingImportFile(input.files[0]);
+      setModalMode("import");
+      setModalPassword("");
+      setShowModal(true);
+      input.value = ""; // Reset input
+  };
 
-      const file = input.files[0];
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-          try {
-              const content = e.target?.result as string;
-              const parsed = JSON.parse(content);
-              
-              if (parsed.publicKey && parsed.privateKey && parsed.keyId) {
-                  saveKeyPairToLocalStorage(parsed);
-                  setKeyPair(parsed);
-                  setError(null);
-                  alert("Keys imported successfully!");
-              } else {
-                  throw new Error("Invalid key file format.");
+  const handleModalConfirm = async () => {
+      setShowModal(false);
+      const password = modalPassword();
+
+      if (modalMode() === "export") {
+          const keys = keyPair();
+          if (!keys) return;
+
+          let privateKeyToExport = keys.privateKey;
+          if (password) {
+              try {
+                  privateKeyToExport = await encryptPrivateKey(keys.privateKey, password);
+              } catch (e) {
+                  console.error("Failed to encrypt key", e);
+                  setError("Failed to encrypt key. Check console.");
+                  return;
               }
-          } catch (err) {
-              console.error("Import failed:", err);
-              setError("Failed to import keys. Invalid file format.");
           }
-      };
-      
-      reader.readAsText(file);
-      // Reset input
-      input.value = "";
+          
+          const exportData = { ...keys, privateKey: privateKeyToExport };
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+          const downloadAnchorNode = document.createElement('a');
+          downloadAnchorNode.setAttribute("href", dataStr);
+          downloadAnchorNode.setAttribute("download", "pgpcord_keys.json");
+          document.body.appendChild(downloadAnchorNode);
+          downloadAnchorNode.click();
+          downloadAnchorNode.remove();
+
+      } else if (modalMode() === "import") {
+          const file = pendingImportFile();
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+              try {
+                  const content = e.target?.result as string;
+                  const parsed = JSON.parse(content);
+                  
+                  if (parsed.publicKey && parsed.privateKey && parsed.keyId) {
+                      let privateKey = parsed.privateKey;
+                      
+                      if (password) {
+                           try {
+                              privateKey = await decryptPrivateKey(privateKey, password);
+                           } catch (err) {
+                               setError("Incorrect password or invalid key.");
+                               return;
+                           }
+                      }
+
+                      const newKeys = { ...parsed, privateKey };
+                      saveKeyPairToLocalStorage(newKeys);
+                      setKeyPair(newKeys);
+                      setError(null);
+                      // alert("Keys imported successfully!"); // Avoid alert if possible
+                  } else {
+                      throw new Error("Invalid key file format.");
+                  }
+              } catch (err) {
+                  console.error("Import failed:", err);
+                  setError("Failed to import keys. Invalid file format or wrong password.");
+              }
+          };
+          reader.readAsText(file);
+      }
   };
 
   return (
     <div class={classes.container}>
       <h2 class={classes.header}>PGPCord Settings</h2>
+
+      <Show when={showModal()}>
+          <div style={{
+              position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+              background: "rgba(0,0,0,0.85)", display: "flex", "align-items": "center", "justify-content": "center", "z-index": 9999
+          }}>
+              <div class={classes.section} style={{ 
+                  background: "var(--background-primary)", 
+                  padding: "24px", 
+                  "border-radius": "8px", 
+                  "min-width": "320px",
+                  "box-shadow": "var(--elevation-high)",
+                  border: "1px solid var(--background-modifier-accent)"
+              }}>
+                  <h3 class={classes.subHeader} style={{ "margin-top": 0 }}>
+                      {modalMode() === "export" ? "Encrypt Export" : "Decrypt Import"}
+                  </h3>
+                  <p class={classes.text} style={{ "margin-bottom": "16px" }}>
+                      {modalMode() === "export" 
+                          ? "Enter a password to encrypt your private key (Recommended):" 
+                          : "Enter the password for this key file (leave empty if none):"}
+                  </p>
+                  <input 
+                      class={classes.input} 
+                      type="password" 
+                      value={modalPassword()} 
+                      onInput={(e) => setModalPassword(e.currentTarget.value)}
+                      placeholder="Password"
+                      style={{ "margin-bottom": "24px", "background-color": "var(--input-background)" }}
+                  />
+                  <div style={{ display: "flex", gap: "12px", "justify-content": "flex-end" }}>
+                      <button class={classes.secondaryButton} onClick={() => setShowModal(false)}>Cancel</button>
+                      <button class={classes.button} onClick={handleModalConfirm}>
+                          {modalMode() === "export" ? "Export" : "Import"}
+                      </button>
+                  </div>
+              </div>
+          </div>
+      </Show>
 
       <Show when={error()}>
         <div class={classes.error}>
@@ -147,7 +231,7 @@ export default () => {
                   <h4 class={classes.subHeader}>Or Import Existing Keys</h4>
                   <label class={classes.secondaryButton} style={{ display: "inline-block", cursor: "pointer" }}>
                       Import Keys from JSON
-                      <input type="file" accept=".json" onChange={handleImportKeys} style={{ display: "none" }} />
+                      <input type="file" accept=".json" onChange={initiateImport} style={{ display: "none" }} />
                   </label>
               </div>
             </div>
@@ -168,7 +252,7 @@ export default () => {
                  <button class={classes.secondaryButton} onClick={handlePublishKey}>
                     Publish Public Key
                  </button>
-                 <button class={classes.secondaryButton} onClick={handleExportKeys}>
+                 <button class={classes.secondaryButton} onClick={initiateExport}>
                     Export Keys Backup
                  </button>
               </div>

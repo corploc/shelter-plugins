@@ -136,3 +136,27 @@ export async function decryptMessage(encryptedMessage: string): Promise<string> 
 
   return decrypted as string;
 }
+
+export async function encryptPrivateKey(privateKeyArmored: string, passphrase: string): Promise<string> {
+    const privateKey = await openpgp.readPrivateKey({ armoredKey: privateKeyArmored });
+    if (!privateKey.isDecrypted()) {
+        return privateKeyArmored; // Already encrypted
+    }
+    const encryptedKey = await openpgp.encryptKey({
+        privateKey,
+        passphrase
+    });
+    return encryptedKey.armor();
+}
+
+export async function decryptPrivateKey(privateKeyArmored: string, passphrase: string): Promise<string> {
+    const privateKey = await openpgp.readPrivateKey({ armoredKey: privateKeyArmored });
+    if (privateKey.isDecrypted()) {
+        return privateKeyArmored; // Already decrypted
+    }
+    const decryptedKey = await openpgp.decryptKey({
+        privateKey,
+        passphrase
+    });
+    return decryptedKey.armor();
+}
