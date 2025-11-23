@@ -1,5 +1,7 @@
 import { Show } from "solid-js";
 
+declare const shelter: any;
+
 type EncryptedMessageState = "decrypting" | "decrypted" | "error";
 
 export default (props: {

@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/Zerostats/pgpcord#readme",
   "dependencies": {
-    "@supabase/supabase-js": "^2.84.0",
+    "@uwu/lune": "^1.5.1",
     "openpgp": "^6.2.2"
   },
   "devDependencies": {

@@ -1,6 +1,5 @@
 import { createSignal, Show, onMount } from "solid-js";
 import { generateKeyPair, saveKeyPairToLocalStorage, loadKeyPairFromLocalStorage } from "../lib/crypto";
-import { publishPublicKey } from "../lib/api";
 import { UserKeyPair, PluginSettings, CacheDuration } from "../lib/types";
 
 // Assuming Shelter's data API is available globally via `shelter`
@@ -23,7 +22,7 @@ export default () => {
     if (loadedKeys) {
       setKeyPair(loadedKeys);
     }
-    const loadedSettings = shelter.flux.store("pgpcord_settings");
+    const loadedSettings = shelter.plugin.store.pgpcord_settings;
     if (loadedSettings) {
       setSettings(loadedSettings);
     }
@@ -36,9 +35,6 @@ export default () => {
       const newKeyPair = await generateKeyPair(passphrase());
       saveKeyPairToLocalStorage(newKeyPair);
       setKeyPair(newKeyPair);
-
-      await publishPublicKey(newKeyPair.publicKey);
-
     } catch (err) {
       console.error("Key generation failed:", err);
       setError(err instanceof Error ? err.message : "An unknown error occurred.");
@@ -48,10 +44,15 @@ export default () => {
     }
   };
 
+  const handlePublishKey = () => {
+    // Redirect to external site for key publishing
+    window.open("https://pgpcord.zerostats.dev/upload", "_blank");
+  };
+
   const handleSettingsChange = (partialSettings: Partial<PluginSettings>) => {
     const newSettings = { ...settings(), ...partialSettings };
     setSettings(newSettings);
-    shelter.flux.store("pgpcord_settings", newSettings);
+    shelter.plugin.store.pgpcord_settings = newSettings;
   };
 
   return (
@@ -84,9 +85,16 @@ export default () => {
             <h3>Your PGP Keys</h3>
             <div>
               <h4>Public Key</h4>
-              <pre>{kp().publicKey}</pre>
+              <pre>{kp.publicKey}</pre>
             </div>
             
+            <div style={{ "margin-top": "1em", "margin-bottom": "1em" }}>
+               <button onClick={handlePublishKey}>Publish Public Key to Directory</button>
+               <p style={{ "font-size": "0.8em", "color": "var(--text-muted)" }}>
+                 This will open an external website where you can authenticate with Discord to publish your key.
+               </p>
+            </div>
+
             <hr />
 
             <h3>Security Settings</h3>

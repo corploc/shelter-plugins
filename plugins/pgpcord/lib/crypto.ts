@@ -42,7 +42,7 @@ export async function decryptAndCachePrivateKey(encryptedPrivateKey: string, pas
  * Retrieves the cached private key if it's still valid according to the user's settings.
  */
 export function getCachedPrivateKey(): openpgp.PrivateKey | null {
-  const settings: PluginSettings = shelter.flux.store("pgpcord_settings") || { cacheDuration: 'session', cacheTimeMinutes: 15 };
+  const settings: PluginSettings = shelter.plugin.store.pgpcord_settings || { cacheDuration: 'session', cacheTimeMinutes: 15 };
 
   if (!cachedPrivateKey || !cacheTimestamp) return null;
   if (settings.cacheDuration === 'none') return null;
@@ -71,14 +71,14 @@ export function clearCachedPrivateKey(): void {
  * Saves the user's key pair to Shelter's local storage.
  */
 export function saveKeyPairToLocalStorage(keyPair: UserKeyPair): void {
-  shelter.flux.store("pgpcord_keys", keyPair);
+  shelter.plugin.store.pgpcord_keys = keyPair;
 }
 
 /**
  * Loads the user's key pair from Shelter's local storage.
  */
 export function loadKeyPairFromLocalStorage(): UserKeyPair | undefined {
-  return shelter.flux.store("pgpcord_keys");
+  return shelter.plugin.store.pgpcord_keys;
 }
 
 /**

@@ -12,6 +12,7 @@ auto-save-list
 tramp
 .\#*
 
+node_modules/
 # Org-mode
 .org-id-locations
 *_archive

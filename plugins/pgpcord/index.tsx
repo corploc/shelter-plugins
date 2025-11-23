@@ -1,10 +1,9 @@
-import { definePlugin } from "shelter";
 import Settings from "./components/Settings";
 import { patchChatBar, unpatchChatBar } from "./patches/ChatBar";
 import { patchMessageContent, unpatchMessage } from "./patches/Message";
 
 // Define the plugin
-const pgpcord = definePlugin({
+export default {
   // The name of the plugin
   name: "PGPCord",
   // The author of the plugin
@@ -14,7 +13,6 @@ const pgpcord = definePlugin({
   
   // Called when the plugin is loaded
   onLoad: () => {
-    pgpcord.settings.register("PGPCord", Settings);
     patchChatBar();
     patchMessageContent();
   },
@@ -24,6 +22,6 @@ const pgpcord = definePlugin({
     unpatchChatBar();
     unpatchMessage();
   },
-});
 
-export default pgpcord;
+  settings: Settings,
+};

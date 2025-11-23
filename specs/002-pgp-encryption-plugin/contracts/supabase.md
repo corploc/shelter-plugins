@@ -63,7 +63,9 @@ RLS is enabled on the `user_keys` table to enforce the access policy defined in 
     ON public.user_keys
     FOR UPDATE
     USING (public.get_discord_user_id() = discord_id::text)
-    WITH CHECK (public.get_discord_user_id() = discord_id::text);    ```
+    WITH CHECK (public.get_discord_user_id() = discord_id::text);
+    
+       ```
 
 ### Summary of Permissions
 
