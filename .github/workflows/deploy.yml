@@ -26,15 +26,6 @@ jobs:
 
             - name: Copy plugin manifests and additional files
               run: |
-                # Create per-plugin folders and copy their manifests
-                for dir in plugins/*; do
-                  if [ -d "$dir" ] && [ -f "$dir/plugin.json" ]; then
-                    name=$(basename "$dir")
-                    mkdir -p "dist/$name"
-                    cp "$dir/plugin.json" "dist/$name/plugin.json"
-                  fi
-                done
-
                 # Existing stuff
                 cp README.md dist/README.md
                 printf -- "---\npermalink: /404.html\n---\n" > dist/404.md
