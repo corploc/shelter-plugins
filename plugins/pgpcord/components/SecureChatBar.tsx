@@ -165,15 +165,36 @@ export default () => {
       // Reprocess messages
       reprocessMessages();
     } else {
-      const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgpcord.dev";
+      const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgcordweb.bash62.workers.dev/";
 
-      const textarea = document.querySelector("form textarea") as HTMLTextAreaElement;
-      if (textarea) {
-        const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
-        nativeTextAreaValueSetter?.call(textarea, inviteText);
-        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      // Try to find the chat input using multiple selectors
+      const chatInput = document.querySelector('[role="textbox"]') ||
+        document.querySelector('form textarea') ||
+        document.querySelector('[contenteditable="true"]');
+
+      if (chatInput) {
+        // Focus the input first
+        (chatInput as HTMLElement).focus();
+
+        // For Slate editor (contenteditable div)
+        if (chatInput.getAttribute('contenteditable') === 'true') {
+          // Simulate a paste event which is handled by Slate to update its internal state
+          const dataTransfer = new DataTransfer();
+          dataTransfer.setData('text/plain', inviteText);
+          const pasteEvent = new ClipboardEvent('paste', {
+            clipboardData: dataTransfer,
+            bubbles: true,
+            cancelable: true
+          });
+          chatInput.dispatchEvent(pasteEvent);
+        } else {
+          // For standard textareas
+          const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+          nativeTextAreaValueSetter?.call(chatInput, inviteText);
+          chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
       } else {
-        alert("Could not find chat bar to insert invite. Please send this link manually: https://pgpcord.dev");
+        alert("Could not find chat bar to insert invite. Please send this link manually: https://pgcordweb.bash62.workers.dev/");
       }
     }
   };
