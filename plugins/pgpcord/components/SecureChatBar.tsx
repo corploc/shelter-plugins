@@ -230,7 +230,7 @@ export default () => {
       // Reprocess messages
       reprocessMessages(channelId);
     } else {
-      const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://localhost:3000/";
+      const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: http://localhost:3000/";
 
       // Try to find the chat input using multiple selectors
       const chatInput = document.querySelector('[role="textbox"]') ||
@@ -259,7 +259,7 @@ export default () => {
           chatInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
       } else {
-        alert("Could not find chat bar to insert invite. Please send this link manually: https://localhost:3000/");
+        alert("Could not find chat bar to insert invite. Please send this link manually: http://localhost:3000/");
       }
     }
   };

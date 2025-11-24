@@ -7,6 +7,10 @@ import classes from "./settings.scss";
 // Assuming Shelter's data API is available globally via `shelter`
 declare const shelter: any;
 
+// Rate limiting - module level to persist across re-renders
+let lastCheckTime = 0;
+const CHECK_COOLDOWN_MS = 2000; // 2 seconds between checks
+
 const defaultSettings: PluginSettings = {
   cacheDuration: 'session',
   cacheTimeMinutes: 15,
@@ -68,22 +72,71 @@ export default () => {
     }
   };
 
-  const handlePublishKey = () => {
+  const handlePublishKey = async () => {
     const kp = keyPair();
     if (!kp) return;
 
-    const encodedKey = encodeURIComponent(kp.publicKey);
-    const url = `http://localhost:3000/dashboard?pgp_key=${encodedKey}`;
-    window.open(url, "_blank");
+    try {
+      const response = await fetch('http://localhost:3000/api/cache-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key: kp.publicKey,
+          next: '/dashboard'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to cache key');
+      }
+
+      const data = await response.json();
+
+      // Navigate to the returned redirect_url
+      if (data.redirect_url) {
+        window.open(`http://localhost:3000${data.redirect_url}`, '_blank');
+      } else {
+        throw new Error('No redirect URL returned');
+      }
+    } catch (err) {
+      console.error('PGPCord: Failed to publish key', err);
+      setError('Failed to publish key to server. Please try again.');
+    }
   };
 
   const handleDeleteKeys = () => {
     if (confirm("Are you sure you want to delete your keys? This action cannot be undone and you will lose access to all encrypted messages.")) {
-      saveKeyPairToLocalStorage(null as any); // Clear storage
-      setKeyPair(null);
-      setPassphrase("");
-      // Redirect to delete user on server
-      window.open("http://localhost:3000/dashboard", "_blank");
+      try {
+        // 1. Clear keys from localStorage
+        saveKeyPairToLocalStorage(null as any);
+
+        // 2. Clear all plugin store data
+        delete shelter.plugin.store.pgpcord_keys;
+        delete shelter.plugin.store.pgpcord_settings;
+        delete shelter.plugin.store.pgpcord_lock_state;
+
+        // 3. Clear any cached private keys
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem('pgpcord_cached_private_key');
+          sessionStorage.removeItem('pgpcord_cache_expiry');
+        }
+
+        // 4. Reset local state
+        setKeyPair(null);
+        setPassphrase("");
+        setKeyStatus("idle");
+
+        // 5. Redirect to backend delete route with validate=true
+        // This will handle OAuth and actual server-side deletion
+        window.open("http://localhost:3000/delete?validate=true", "_blank");
+
+        console.log("PGPCord: Local data cleared, redirecting to server deletion...");
+      } catch (err) {
+        console.error("PGPCord: Error during key deletion", err);
+        setError("Failed to clear local data. Please try again.");
+      }
     }
   };
 
@@ -182,7 +235,20 @@ export default () => {
     });
   };
 
+  const normalizeKey = (key: string): string => {
+    // Remove all whitespace, newlines, carriage returns, etc.
+    return key.replace(/\s+/g, '').trim();
+  };
+
   const handleCheckStatus = async () => {
+    // Rate limiting guard
+    const now = Date.now();
+    if (now - lastCheckTime < CHECK_COOLDOWN_MS) {
+      console.log(`PGPCord: Please wait ${Math.ceil((CHECK_COOLDOWN_MS - (now - lastCheckTime)) / 1000)}s before checking again`);
+      return;
+    }
+    lastCheckTime = now;
+
     setKeyStatus("checking");
     try {
       const serverKeyRecord = await checkCurrentUserKey();
@@ -191,8 +257,16 @@ export default () => {
       let status: "found" | "not_found" | "mismatch" = "not_found";
 
       if (serverKeyRecord) {
-        if (localKeys && serverKeyRecord.public_key.trim() === localKeys.publicKey.trim()) {
-          status = "found";
+        if (localKeys) {
+          // Normalize both keys before comparison
+          const normalizedServerKey = normalizeKey(serverKeyRecord.public_key);
+          const normalizedLocalKey = normalizeKey(localKeys.publicKey);
+
+          if (normalizedServerKey === normalizedLocalKey) {
+            status = "found";
+          } else {
+            status = "mismatch";
+          }
         } else {
           status = "mismatch";
         }
