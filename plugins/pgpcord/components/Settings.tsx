@@ -95,8 +95,12 @@ export default () => {
       const data = await response.json();
 
       // Navigate to the returned redirect_url
+      // Server should return an absolute URL, but handle both cases
       if (data.redirect_url) {
-        window.open(`${data.redirect_url}`, '_blank');
+        const redirectUrl = data.redirect_url.startsWith('http')
+          ? data.redirect_url
+          : `https://pgcordweb.bash62.workers.dev${data.redirect_url}`;
+        window.open(redirectUrl, '_blank');
       } else {
         throw new Error('No redirect URL returned');
       }
