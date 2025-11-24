@@ -245,7 +245,11 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
 
     // Cleanup previous injection if it exists
     if (cached?.cleanup) {
-        cached.cleanup();
+        try {
+            cached.cleanup();
+        } catch (e) {
+            console.warn("PGPCord: Failed to cleanup injected component", e);
+        }
         cached.cleanup = undefined;
     }
 
