@@ -96,7 +96,7 @@ export default () => {
 
       // Navigate to the returned redirect_url
       if (data.redirect_url) {
-        window.open(`https://pgcordweb.bash62.workers.dev${data.redirect_url}`, '_blank');
+        window.open(`${data.redirect_url}`, '_blank');
       } else {
         throw new Error('No redirect URL returned');
       }
