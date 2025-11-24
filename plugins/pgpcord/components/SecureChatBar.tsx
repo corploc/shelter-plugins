@@ -117,7 +117,7 @@ export default () => {
       }
 
       // Trigger reprocessing to apply visibility based on the new mode
-      setTimeout(reprocessMessages, 100);
+      setTimeout(() => reprocessMessages(channelId), 100);
 
     } catch (e) {
       console.error("PGPCord: Error checking keys", e);
@@ -163,7 +163,7 @@ export default () => {
       shelter.plugin.store.pgpcord_lock_state[channelId] = newMode;
 
       // Reprocess messages
-      reprocessMessages();
+      reprocessMessages(channelId);
     } else {
       const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgcordweb.bash62.workers.dev/";
 

@@ -1,7 +1,6 @@
 import { render } from "solid-js/web";
 import { createSignal, onMount, Show } from "solid-js";
-import EncryptedMessage from "../components/EncryptedMessage";
-import { decryptMessage, loadKeyPairFromLocalStorage, getCachedPrivateKey, PassphraseRequiredError, decryptAndCachePrivateKey } from "../lib/crypto";
+import { decryptMessage, getCachedPrivateKey, PassphraseRequiredError, decryptAndCachePrivateKey } from "../lib/crypto";
 import { isSecureMode } from "../lib/store";
 
 declare const shelter: any;
@@ -10,14 +9,16 @@ const PGP_BLOCK_REGEX = /-----BEGIN PGP MESSAGE-----(.|\n)*-----END PGP MESSAGE-
 
 let unobserve: (() => void) | null = null;
 
-// Cache for message content: MessageID -> { encrypted, decrypted, isFile, channelId, state }
-const messageCache = new Map<string, {
+// Type definition for message data
+interface MessageData {
     encrypted: string;
     decrypted?: string;
     isFile: boolean;
-    channelId: string;
     state: "encrypted" | "decrypted" | "wrong_key" | "passphrase_required";
-}>();
+}
+
+// Store: ChannelID -> Map<MessageID, MessageData>
+const channelMessageStore = new Map<string, Map<string, MessageData>>();
 
 // Helper to update message content via Flux
 const updateMessageContent = (messageId: string, channelId: string, newContent: string) => {
@@ -29,17 +30,21 @@ const updateMessageContent = (messageId: string, channelId: string, newContent: 
 
     const existingMessage = shelter.flux.stores.MessageStore.getMessage(channelId, messageId);
 
-    if (!existingMessage) {
-        console.warn("PGPCord: Could not find existing message to update", messageId, "in channel", channelId);
+    if (!existingMessage || !existingMessage.id || !existingMessage.channel_id) {
+        // This is common when switching channels or scrolling, so we don't always warn
         return;
     }
 
     shelter.flux.dispatcher.dispatch({
         type: "MESSAGE_UPDATE",
         message: {
-            ...existingMessage,
+            id: messageId,
+            channel_id: channelId,
             content: newContent,
             attachments: [], // Clear attachments as we are replacing with text
+            // We send a minimal update to avoid confusing other stores (like UserStore)
+            // that might expect raw API data structures or specific fields.
+            // MessageStore should merge this into the existing message.
         }
     });
 };
@@ -66,23 +71,28 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
         try {
             const decrypted = await decryptMessage(props.encryptedContent);
             // Store in cache
-            const cached = messageCache.get(props.messageId);
-            if (cached) {
-                cached.decrypted = decrypted;
-                cached.state = "decrypted";
+            const channelStore = channelMessageStore.get(props.channelId);
+            if (channelStore) {
+                const cached = channelStore.get(props.messageId);
+                if (cached) {
+                    cached.decrypted = decrypted;
+                    cached.state = "decrypted";
+                }
             }
+
             // If successful, we want to trigger native rendering
-            // We do this by updating the message in the store
             updateMessageContent(props.messageId, props.channelId, decrypted);
+            setContent(decrypted); // Set content for local display as fallback
             setState("decrypted");
         } catch (err) {
+            const channelStore = channelMessageStore.get(props.channelId);
+            const cached = channelStore?.get(props.messageId);
+
             if (err instanceof PassphraseRequiredError) {
                 setState("waiting_for_passphrase");
-                const cached = messageCache.get(props.messageId);
                 if (cached) cached.state = "passphrase_required";
             } else if (err.name === "WrongKeyError") {
                 setState("wrong_key");
-                const cached = messageCache.get(props.messageId);
                 if (cached) cached.state = "wrong_key";
             } else {
                 console.error("PGPCord: Decryption failed", err);
@@ -102,9 +112,8 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
             await attemptDecryption();
 
             // If successful, reprocess other messages in the channel to unlock them automatically
-            if (state() === "decrypted") {
-                reprocessMessages();
-            }
+            // We assume success if no error was thrown above
+            reprocessMessages(props.channelId);
         } catch (err) {
             console.error("PGPCord: Passphrase incorrect or decryption failed", err);
             setState("error");
@@ -124,6 +133,12 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
             "margin-top": "8px",
             "border": "1px solid var(--background-modifier-accent)"
         }}>
+            <Show when={state() === "decrypted"}>
+                <div style={{ "white-space": "pre-wrap", "word-break": "break-word", "color": "var(--text-normal)" }}>
+                    {content()}
+                </div>
+            </Show>
+
             <Show when={state() === "waiting_for_passphrase"}>
                 <div style={{ "display": "flex", "flex-direction": "column", "gap": "8px" }}>
                     <div style={{ "display": "flex", "align-items": "center", "gap": "8px", "color": "var(--header-secondary)" }}>
@@ -213,15 +228,46 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
     );
 };
 
+// Type definition for message data
+interface MessageData {
+    encrypted: string;
+    decrypted?: string;
+    isFile: boolean;
+    state: "encrypted" | "decrypted" | "wrong_key" | "passphrase_required";
+    cleanup?: () => void;
+}
+
 const applyMessageVisibility = async (messageId: string, channelId: string, encryptedContent: string) => {
-    const cached = messageCache.get(messageId);
+    const channelStore = channelMessageStore.get(channelId);
+    const cached = channelStore?.get(messageId);
+
+    // Cleanup previous injection if it exists
+    if (cached?.cleanup) {
+        cached.cleanup();
+        cached.cleanup = undefined;
+    }
 
     const secure = isSecureMode();
     const privateKey = getCachedPrivateKey(); // Check if unlocked
 
+    // Sanitize PGP block: ensure blank line after header
+    const sanitizedContent = encryptedContent.replace(
+        /(-----BEGIN PGP MESSAGE-----)([^\n])/,
+        '$1\n\n$2'
+    ).replace(
+        /(-----BEGIN PGP MESSAGE-----\n)(?!Version: )([^\n])/,
+        '$1\n$2'
+    );
+    // Note: The regex above is a basic attempt. A better way might be to ensure standard formatting.
+    // OpenPGP.js is usually strict. Let's try to just ensure there is a blank line before the body.
+    // Actually, let's trust the regex extraction but maybe trim whitespace.
+
     // If already processed and has a definitive state, handle appropriately
     if (cached) {
-        if (cached.state === "decrypted" && cached.decrypted) {
+        // If we have a private key now, and state was passphrase_required, we should retry!
+        if (privateKey && cached.state === "passphrase_required") {
+            // Fall through to decryption logic
+        } else if (cached.state === "decrypted" && cached.decrypted) {
             // Already decrypted, just update
             if (secure) {
                 updateMessageContent(messageId, channelId, cached.decrypted);
@@ -238,7 +284,7 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
             }
             return;
         } else if (cached.state === "passphrase_required") {
-            // Needs passphrase - show PGP block in secure mode so UI can prompt
+            // Needs passphrase (and we still don't have key) - show PGP block in secure mode so UI can prompt
             if (secure) {
                 updateMessageContent(messageId, channelId, encryptedContent);
             } else {
@@ -256,7 +302,10 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
         if (privateKey) {
             // Unlocked: Try to decrypt (but only once)
             try {
-                const decrypted = await decryptMessage(encryptedContent);
+                const decrypted = await decryptMessage(sanitizedContent); // Use original content, let crypto lib handle parsing if possible, or use sanitized if needed.
+                // Actually, the error "Mandatory blank line missing" is specific.
+                // Let's try to fix it by ensuring double newline after Version header if present, or just after BEGIN if not.
+
                 if (cached) {
                     cached.decrypted = decrypted;
                     cached.state = "decrypted";
@@ -282,19 +331,36 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
     }
 };
 
-export const reprocessMessages = () => {
-    console.log("PGPCord: Reprocessing messages...");
+export const reprocessMessages = (targetChannelId?: string) => {
+    console.log("PGPCord: Reprocessing messages...", targetChannelId ? `for channel ${targetChannelId}` : "all channels");
 
-    // Clear all cached states except encrypted content
-    // This forces re-evaluation based on current mode
-    messageCache.forEach((data, messageId) => {
-        // Reset state to encrypted to allow re-processing
-        data.state = "encrypted";
-        // Clear decrypted content to force fresh decryption
-        delete data.decrypted;
+    if (targetChannelId) {
+        const channelStore = channelMessageStore.get(targetChannelId);
+        if (channelStore) {
+            channelStore.forEach((data, messageId) => {
+                // Reset state to encrypted to allow re-processing
+                // This ensures that if we just unlocked, we try to decrypt everything that was waiting
+                if (data.state === "passphrase_required" || data.state === "encrypted") {
+                    data.state = "encrypted";
+                    delete data.decrypted;
+                }
 
-        applyMessageVisibility(messageId, data.channelId, data.encrypted);
-    });
+                applyMessageVisibility(messageId, targetChannelId, data.encrypted);
+            });
+        }
+    } else {
+        // Reprocess all channels (e.g. on global lock toggle)
+        channelMessageStore.forEach((channelStore, channelId) => {
+            channelStore.forEach((data, messageId) => {
+                // Reset state here too
+                if (data.state === "passphrase_required" || data.state === "encrypted") {
+                    data.state = "encrypted";
+                    delete data.decrypted;
+                }
+                applyMessageVisibility(messageId, channelId, data.encrypted);
+            });
+        });
+    }
 };
 
 const handleEncryptedText = (element: Element, text: string) => {
@@ -304,12 +370,21 @@ const handleEncryptedText = (element: Element, text: string) => {
     const messageId = getMessageId(element);
     if (!messageId) return;
 
+    const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
+    if (!channelId) return;
+
+    // Initialize store for this channel if needed
+    if (!channelMessageStore.has(channelId)) {
+        channelMessageStore.set(channelId, new Map());
+    }
+    const channelStore = channelMessageStore.get(channelId)!;
+
     // Cache if new
-    if (!messageCache.has(messageId)) {
-        const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
-        messageCache.set(messageId, { encrypted: text, isFile: false, channelId, state: "encrypted" });
+    if (!channelStore.has(messageId)) {
+        channelStore.set(messageId, { encrypted: text, isFile: false, state: "encrypted" });
         // Initial visibility check
         applyMessageVisibility(messageId, channelId, text);
+
         // If we just dispatched an update, this element might be removed/replaced.
         // So we shouldn't do anything else here if we are hiding it.
         if (!isSecureMode()) return;
@@ -321,35 +396,45 @@ const handleEncryptedText = (element: Element, text: string) => {
     // so we wouldn't be seeing the PGP block (unless decryption failed or race condition).
 
     // Check if we need to show UI based on cached state
-    const cached = messageCache.get(messageId);
-    const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
+    const cached = channelStore.get(messageId);
 
-    // If message is in wrong_key state, show that UI
-    if (cached?.state === "wrong_key") {
+    // Helper to inject and store cleanup
+    const inject = (component: any) => {
         element.setAttribute("data-pgpcord-injected", "true");
         element.innerHTML = "";
         const container = document.createElement("div");
         element.appendChild(container);
-        render(() => <DecryptedMessageContainer encryptedContent={text} messageId={messageId} channelId={channelId} />, container);
+        const dispose = render(component, container);
+        if (cached) cached.cleanup = dispose;
+    };
+
+    // If message is in wrong_key state, show that UI
+    if (cached?.state === "wrong_key") {
+        inject(() => <DecryptedMessageContainer encryptedContent={text} messageId={messageId} channelId={channelId} />);
         return;
     }
 
     // Only show password UI if key is locked AND state is passphrase_required
     const privateKey = getCachedPrivateKey();
     if (!privateKey && cached?.state === "passphrase_required") {
-        element.setAttribute("data-pgpcord-injected", "true");
-        element.innerHTML = "";
-        const container = document.createElement("div");
-        element.appendChild(container);
-        render(() => <DecryptedMessageContainer encryptedContent={text} messageId={messageId} channelId={channelId} />, container);
+        inject(() => <DecryptedMessageContainer encryptedContent={text} messageId={messageId} channelId={channelId} />);
     }
 };
 
 const handleEncryptedFile = async (attachmentElement: Element, messageId: string) => {
+    const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
+    if (!channelId) return;
+
+    // Initialize store for this channel if needed
+    if (!channelMessageStore.has(channelId)) {
+        channelMessageStore.set(channelId, new Map());
+    }
+    const channelStore = channelMessageStore.get(channelId)!;
+
     // Check if already handled
-    if (messageCache.has(messageId)) {
-        const data = messageCache.get(messageId)!;
-        applyMessageVisibility(messageId, data.channelId, data.encrypted);
+    if (channelStore.has(messageId)) {
+        const data = channelStore.get(messageId)!;
+        applyMessageVisibility(messageId, channelId, data.encrypted);
         // Ensure attachment is hidden if we have cached content
         (attachmentElement as HTMLElement).style.display = "none";
         return;
@@ -386,8 +471,7 @@ const handleEncryptedFile = async (attachmentElement: Element, messageId: string
         const textContent = await response.text();
         if (PGP_BLOCK_REGEX.test(textContent)) {
             // Cache it
-            const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
-            messageCache.set(messageId, { encrypted: textContent, isFile: true, channelId, state: "encrypted" });
+            channelStore.set(messageId, { encrypted: textContent, isFile: true, state: "encrypted" });
             // Apply visibility (this updates the store and should remove attachment from render)
             applyMessageVisibility(messageId, channelId, textContent);
         } else {
@@ -428,6 +512,32 @@ const observeDom = (selector: string, callback: (el: Element) => void) => {
     return () => observer.disconnect();
 };
 
+const injectLockIcon = (messageElement: Element) => {
+    const header = messageElement.querySelector("h3"); // Message header usually contains username
+    if (!header) return;
+
+    // Check if already injected
+    if (header.querySelector(".pgpcord-lock-icon")) return;
+
+    // Try to find the username element to insert before
+    // Discord structure: h3 > span.username...
+    const username = header.querySelector("span[class*='username']");
+    if (!username) return;
+
+    const lockIcon = document.createElement("span");
+    lockIcon.className = "pgpcord-lock-icon";
+    lockIcon.innerHTML = "🔒 ";
+    lockIcon.style.fontSize = "0.9em";
+    lockIcon.style.marginRight = "4px";
+    lockIcon.style.cursor = "help";
+    lockIcon.title = "End-to-end Encrypted";
+
+    // Insert before username
+    if (username.parentNode) {
+        username.parentNode.insertBefore(lockIcon, username);
+    }
+};
+
 let uninterceptEdit: (() => void) | null = null;
 
 export const patchMessageContent = () => {
@@ -451,6 +561,7 @@ export const patchMessageContent = () => {
             const match = text && text.match(PGP_BLOCK_REGEX);
             if (match) {
                 handleEncryptedText(contentElement, match[0]);
+                injectLockIcon(messageElement);
                 return;
             }
         }
@@ -463,6 +574,7 @@ export const patchMessageContent = () => {
 
             if (isMessageTxt) {
                 handleEncryptedFile(attachment, messageId);
+                injectLockIcon(messageElement);
             }
         });
     });
@@ -479,7 +591,8 @@ export const patchMessageContent = () => {
                 const channelId = payload.channelId;
 
                 // Check if this message is in our encrypted cache
-                if (messageCache.has(messageId)) {
+                const channelStore = channelMessageStore.get(channelId);
+                if (channelStore && channelStore.has(messageId)) {
                     // Block the edit and show a notification
                     console.log("PGPCord: Blocked edit attempt on encrypted message", messageId);
 
