@@ -42,6 +42,8 @@ const updateMessageContent = (messageId: string, channelId: string, newContent: 
             channel_id: channelId,
             content: newContent,
             attachments: [], // Clear attachments as we are replacing with text
+            type: existingMessage.type,
+            flags: existingMessage.flags,
             // We send a minimal update to avoid confusing other stores (like UserStore)
             // that might expect raw API data structures or specific fields.
             // MessageStore should merge this into the existing message.
@@ -577,6 +579,16 @@ export const patchMessageContent = () => {
                 injectLockIcon(messageElement);
             }
         });
+
+        // 3. Check if this message is known to be encrypted (e.g. already decrypted)
+        // and ensure the lock icon is present
+        const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
+        if (channelId) {
+            const channelStore = channelMessageStore.get(channelId);
+            if (channelStore && channelStore.has(messageId)) {
+                injectLockIcon(messageElement);
+            }
+        }
     });
 
     // Intercept message editing to prevent editing of encrypted messages

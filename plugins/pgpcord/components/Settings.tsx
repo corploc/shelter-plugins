@@ -68,7 +68,7 @@ export default () => {
   };
 
   const handlePublishKey = () => {
-    window.open("https://pgcordweb.bash62.workers.dev/upload", "_blank");
+    window.open("https://pgcordweb.bash62.workers.dev/dashboard", "_blank");
   };
 
   const handleDeleteKeys = () => {
@@ -77,7 +77,7 @@ export default () => {
       setKeyPair(null);
       setPassphrase("");
       // Redirect to delete user on server
-      window.open("https://pgcordweb.bash62.workers.dev/delete", "_blank");
+      window.open("https://pgcordweb.bash62.workers.dev/dashboard", "_blank");
     }
   };
 

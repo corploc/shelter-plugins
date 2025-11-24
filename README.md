@@ -27,7 +27,7 @@ You can install PGPCord directly into your Shelter/Vencord client using the repo
 3.  In the **Plugins** section, find the option to **Add Plugin** (or "Add by URL").
 4.  Paste the following GitHub URL:
     ```
-    https://github.com/Zerostats/pgpcord
+    https://zerostats.github.io/pgpcord/pgpcord/ 
     ```
 5.  Click **Add Plugin**.
 
