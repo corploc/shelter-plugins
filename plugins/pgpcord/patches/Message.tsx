@@ -337,6 +337,7 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
     }
 };
 
+
 export const reprocessMessages = (targetChannelId?: string) => {
     console.log("PGPCord: Reprocessing messages...", targetChannelId ? `for channel ${targetChannelId}` : "all channels");
 
