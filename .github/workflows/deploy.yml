@@ -26,7 +26,15 @@ jobs:
 
             - name: Copy plugin manifests and additional files
               run: |
-                # Existing stuff
+                # copy all plugin manifests into dist/<pluginName>/plugin.json
+                for dir in plugins/*; do
+                  if [ -d "$dir" ] && [ -f "$dir/plugin.json" ]; then
+                    name=$(basename "$dir")
+                    mkdir -p "dist/$name"
+                    cp "$dir/plugin.json" "dist/$name/plugin.json"
+                  fi
+                done
+
                 cp README.md dist/README.md
                 printf -- "---\npermalink: /404.html\n---\n" > dist/404.md
                 printf -- "> **Note:** You accessed a link that returned a 404, probably by clicking one of the plugin links. You're supposed to copy the link address and add it into shelter.\n\n" >> dist/404.md
