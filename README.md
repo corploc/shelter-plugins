@@ -20,11 +20,16 @@ For the full list of rules, see the [project constitution](./specs/002-pgp-encry
 
 ## Installation
 
-PGPCord is a plugin for Vencord/Shelter and must be loaded in a modded Discord client.
+You can install PGPCord directly into your Shelter/Vencord client using the repository URL.
 
-1.  Build the plugin by following the development instructions below.
-2.  In your Vencord/Shelter client, navigate to the **Plugins** tab in Settings.
-3.  Load the built plugin from the `dist/` directory inside `plugins/pgpcord/`.
+1.  Open **User Settings** in your client (e.g., Legcord).
+2.  Navigate to **Shelter** > **Settings**.
+3.  In the **Plugins** section, find the option to **Add Plugin** (or "Add by URL").
+4.  Paste the following GitHub URL:
+    ```
+    https://github.com/Zerostats/pgpcord
+    ```
+5.  Click **Add Plugin**.
 
 ## Usage
 
