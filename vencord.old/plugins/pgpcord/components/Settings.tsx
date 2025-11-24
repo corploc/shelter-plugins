@@ -66,7 +66,7 @@ export const Settings = () => {
     };
 
     const handlePublishKey = () => {
-        window.open("https://pgcordweb.bash62.workers.dev/upload", "_blank");
+        window.open("https://localhost:3000/upload", "_blank");
     };
 
     const handleDeleteKeys = () => {
@@ -75,7 +75,7 @@ export const Settings = () => {
             setKeyPair(null);
             setPassphrase("");
             // Redirect to delete user on server
-            window.open("https://pgcordweb.bash62.workers.dev/delete", "_blank");
+            window.open("https://localhost:3000/delete", "_blank");
         }
     };
 

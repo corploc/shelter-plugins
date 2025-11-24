@@ -24,6 +24,7 @@ export default () => {
   const [modalMode, setModalMode] = createSignal<"export" | "import">("export");
   const [modalPassword, setModalPassword] = createSignal("");
   const [pendingImportFile, setPendingImportFile] = createSignal<File | null>(null);
+  const [showPublicKey, setShowPublicKey] = createSignal(false);
 
   // Use shelter store directly for settings where possible, but we need a local signal for the form
   // or we can just read/write to store.
@@ -68,7 +69,12 @@ export default () => {
   };
 
   const handlePublishKey = () => {
-    window.open("https://pgcordweb.bash62.workers.dev/dashboard", "_blank");
+    const kp = keyPair();
+    if (!kp) return;
+
+    const encodedKey = encodeURIComponent(kp.publicKey);
+    const url = `http://localhost:3000/dashboard?pgp_key=${encodedKey}`;
+    window.open(url, "_blank");
   };
 
   const handleDeleteKeys = () => {
@@ -77,7 +83,7 @@ export default () => {
       setKeyPair(null);
       setPassphrase("");
       // Redirect to delete user on server
-      window.open("https://pgcordweb.bash62.workers.dev/dashboard", "_blank");
+      window.open("http://localhost:3000/dashboard", "_blank");
     }
   };
 
@@ -302,11 +308,20 @@ export default () => {
               <div class={classes.inputGroup}>
                 <div style={{ display: "flex", "justify-content": "space-between", "align-items": "center", "margin-bottom": "8px" }}>
                   <label class={classes.label}>Public Key</label>
-                  <button class={classes.copyButton} onClick={() => handleCopy(kp.publicKey)}>
-                    {copyFeedback() ? "Copied!" : "Copy"}
-                  </button>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button class={classes.copyButton} onClick={() => setShowPublicKey(!showPublicKey())}>
+                      {showPublicKey() ? "Hide" : "Show"}
+                    </button>
+                    <Show when={showPublicKey()}>
+                      <button class={classes.copyButton} onClick={() => handleCopy(kp.publicKey)}>
+                        {copyFeedback() ? "Copied!" : "Copy"}
+                      </button>
+                    </Show>
+                  </div>
                 </div>
-                <pre class={classes.codeBlock}><code>{kp.publicKey}</code></pre>
+                <Show when={showPublicKey()}>
+                  <pre class={classes.codeBlock}><code>{kp.publicKey}</code></pre>
+                </Show>
               </div>
 
               <div class={classes.inputGroup} style={{ display: "flex", gap: "8px" }}>

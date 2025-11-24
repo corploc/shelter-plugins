@@ -165,7 +165,7 @@ export const SecureChatBar = () => {
             lockState[channelId] = newMode;
             Store.lockState = lockState;
         } else {
-            const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgcordweb.bash62.workers.dev/";
+            const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://localhost:3000/";
 
             // Try to find the chat input using multiple selectors
             const chatInput = document.querySelector('[role="textbox"]') ||
@@ -194,7 +194,7 @@ export const SecureChatBar = () => {
                     chatInput.dispatchEvent(new Event('input', { bubbles: true }));
                 }
             } else {
-                alert("Could not find chat bar to insert invite. Please send this link manually: https://pgcordweb.bash62.workers.dev/");
+                alert("Could not find chat bar to insert invite. Please send this link manually: https://localhost:3000/");
             }
         }
     };
