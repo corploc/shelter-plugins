@@ -22,11 +22,14 @@ export async function getPublicKeys(userIds: string[]): Promise<PublicKeyRecord[
 
   for (const id of userIds) {
     const cached = publicKeyCache.get(id);
-    if (cached && now - cached.timestamp < CACHE_TTL) {
+    const isHit = cached && cached.key;
+    const ttl = isHit ? CACHE_TTL : 30000; // 5 mins for hits, 30s for misses
+
+    if (cached && now - cached.timestamp < ttl) {
       if (cached.key) {
         cachedKeys.push(cached.key);
       }
-      // If cached (even if null), don't add to missingIds
+      // If cached as null and within 30s, we skip it (negative cache)
     } else {
       missingIds.push(id);
     }
@@ -130,5 +133,48 @@ export async function checkCurrentUserKey(): Promise<PublicKeyRecord | null> {
     // If JSON parsing fails, it likely means empty body (no key)
     currentUserKeyCache = { key: null, timestamp: now };
     return null;
+  }
+}
+
+let pollingInterval: number | null = null;
+
+export function startKeyPolling() {
+  if (pollingInterval) return;
+
+  // Poll every 30 seconds
+  pollingInterval = setInterval(async () => {
+    const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
+    if (!channelId) return;
+
+    const channel = shelter.flux.stores.ChannelStore.getChannel(channelId);
+    if (!channel) return;
+
+    // Determine relevant users to poll
+    let userIds: string[] = [];
+    if (channel.recipients && channel.recipients.length > 0) {
+      userIds = channel.recipients;
+    } else if (channel.guild_id) {
+      // For guild channels, we can't poll everyone.
+      // Maybe poll recent authors? Or just rely on on-demand fetching.
+      // For now, let's skip guild polling to avoid spam, or just poll the current user.
+      userIds = [shelter.flux.stores.UserStore.getCurrentUser()?.id];
+    }
+
+    if (userIds.length > 0) {
+      // Force refresh by ignoring cache TTL or just calling getPublicKeys which handles cache
+      // Actually, we want to update the cache, so we should invalidate or pass a flag.
+      // For now, let's just clear the cache for these users and refetch.
+      for (const id of userIds) {
+        publicKeyCache.delete(id);
+      }
+      await getPublicKeys(userIds);
+    }
+  }, 30000) as unknown as number;
+}
+
+export function stopKeyPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
   }
 }

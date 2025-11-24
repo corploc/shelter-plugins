@@ -169,7 +169,8 @@ export async function encryptMessage(message: string, recipientIds: string[]): P
     encryptionKeys: [...validKeys, ownPublicKey], // Also encrypt for self
   });
 
-  return encryptedMessage as string;
+  const header = `PGPCord v1.0.0 - https://github.com/Zerostats/pgpcord\n\n`;
+  return header + (encryptedMessage as string);
 }
 
 export class WrongKeyError extends Error {

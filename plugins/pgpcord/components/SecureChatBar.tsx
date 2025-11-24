@@ -86,19 +86,84 @@ export default () => {
       const channel = shelter.util?.getChannel?.(channelId) || shelter.flux?.stores?.ChannelStore?.getChannel(channelId);
       if (!channel) return;
 
-      const recipientIds = channel.recipients ? channel.recipients : [channel.id]; // DM or Group DM
+      let recipientIds: string[] = [];
+
+      if (channel.recipients) {
+        // DM or Group DM
+        recipientIds = [...channel.recipients];
+      } else if (channel.guild_id) {
+        // Guild Channel
+        // Try to get members from GuildMemberStore (ChannelMemberStore might not expose simple ID list)
+        // We use GuildMemberStore to get all cached members of the guild.
+        const guildId = channel.guild_id;
+        const memberIds = new Set<string>();
+
+        // 1. Try to get cached guild members
+        const cachedMembers = shelter.flux.stores.GuildMemberStore?.getMemberIds(guildId);
+        if (cachedMembers && Array.isArray(cachedMembers)) {
+          cachedMembers.forEach((id: string) => memberIds.add(id));
+        }
+
+        // 2. Get recent message authors (active users)
+        // This is crucial if GuildMemberStore doesn't have everyone cached
+        const messages = shelter.flux.stores.MessageStore.getMessages(channelId);
+        if (messages && messages.toArray) {
+          messages.toArray().forEach((msg: any) => {
+            if (msg.author?.id) memberIds.add(msg.author.id);
+          });
+        }
+
+        if (memberIds.size > 0) {
+          // Limit to 100 members
+          recipientIds = Array.from(memberIds).slice(0, 100);
+        } else {
+          console.warn("PGPCord: Could not find members for guild channel.");
+        }
+      } else {
+        // Fallback for unknown channel types (e.g. threads might behave like guild channels)
+        recipientIds = [channel.id]; // Likely wrong but safe fallback
+      }
+
       // Filter out self
       const otherRecipients = recipientIds.filter((id: string) => id !== currentUser.id);
 
       if (otherRecipients.length === 0) {
-        // Saved Messages or just self
+        // Saved Messages or just self or empty guild channel
+        // If it's a guild channel and we found no one, it might be better to say "no keys" than "all found"
+        // But for Saved Messages (DM with self), we want to allow encryption.
+        // Let's assume if it's a guild channel and empty, we can't encrypt for anyone else.
+        if (channel.guild_id) {
+          setHasKeys(false);
+          setHasCheckedKeys(true);
+          setGlobalSecureMode(false);
+          return;
+        }
+
         setHasKeys(true);
         setHasCheckedKeys(true);
         return;
       }
 
       const keys = await getPublicKeys(otherRecipients);
-      const allFound = keys.length === otherRecipients.length;
+      // For guild channels, we don't need *everyone* to have a key, just *someone*?
+      // The user said "take all recipients id that exist".
+      // This implies we encrypt for whoever has a key.
+      // So if we find ANY keys, we should probably enable secure mode?
+      // BUT, if we enable secure mode, we are implying encryption is possible.
+      // If we only encrypt for 1 person out of 100, the other 99 see garbage.
+      // This is expected for PGP.
+      // So, if we find at least one valid key (other than ours), we should enable it?
+      // Or should we require all fetched members to have keys?
+      // In a DM, we require ALL.
+      // In a Guild, requiring ALL is impossible (not everyone uses PGPCord).
+      // So for Guilds, we should check if we have *any* valid recipients.
+
+      let allFound = false;
+      if (channel.guild_id) {
+        allFound = keys.length > 0;
+      } else {
+        allFound = keys.length === otherRecipients.length;
+      }
 
       setHasKeys(allFound);
       setHasCheckedKeys(true);
