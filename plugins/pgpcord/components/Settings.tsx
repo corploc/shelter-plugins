@@ -77,7 +77,7 @@ export default () => {
     if (!kp) return;
 
     try {
-      const response = await fetch('http://localhost:3000/api/cache-key', {
+      const response = await fetch('https://pgcordweb.bash62.workers.dev/api/cache-key', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ export default () => {
 
       // Navigate to the returned redirect_url
       if (data.redirect_url) {
-        window.open(`http://localhost:3000${data.redirect_url}`, '_blank');
+        window.open(`https://pgcordweb.bash62.workers.dev${data.redirect_url}`, '_blank');
       } else {
         throw new Error('No redirect URL returned');
       }
@@ -130,7 +130,7 @@ export default () => {
 
         // 5. Redirect to backend delete route with validate=true
         // This will handle OAuth and actual server-side deletion
-        window.open("http://localhost:3000/delete?validate=true", "_blank");
+        window.open("https://pgcordweb.bash62.workers.dev/delete?validate=true", "_blank");
 
         console.log("PGPCord: Local data cleared, redirecting to server deletion...");
       } catch (err) {
