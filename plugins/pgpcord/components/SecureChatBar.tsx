@@ -40,6 +40,25 @@ interface ChannelStatus {
   isDm: boolean;
 }
 
+// A simple invite icon component (User with plus or similar)
+const InviteIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+    <circle cx="8.5" cy="7" r="4"></circle>
+    <line x1="20" y1="8" x2="20" y2="14"></line>
+    <line x1="23" y1="11" x2="17" y2="11"></line>
+  </svg>
+);
+
 export default () => {
   const [isSecureMode, setSecureMode] = createSignal(globalIsSecureMode());
   const [currentUserHasKey, setCurrentUserHasKey] = createSignal(false);
@@ -246,21 +265,69 @@ export default () => {
     checkKeys(channelId);
   };
 
-  const isDisabled = () => !currentUserHasKey() || !hasKeys();
+  // Only disable if user doesn't have their own keys set up
+  const isDisabled = () => !currentUserHasKey();
 
   const handleClick = async () => {
+    console.log("PGPCord: Lock button clicked", {
+      disabled: isDisabled(),
+      checking: checking(),
+      checkingUser: checkingCurrentUser(),
+      hasKeys: hasKeys(),
+      currentMode: isSecureMode()
+    });
+
     if (isDisabled() || checking() || checkingCurrentUser()) return;
 
-    // Toggle secure mode
-    const newMode = !isSecureMode();
-    setGlobalSecureMode(newMode);
+    const channelId = currentChannelId();
+    if (!channelId) return;
 
-    if (!shelter.plugin.store.pgpcord_lock_state) {
-      shelter.plugin.store.pgpcord_lock_state = {};
+    // Force check if not checked or if user wants to retry (e.g. after inviting)
+    if (!hasCheckedKeys()) {
+      await checkKeys(channelId, true); // Force fetch
     }
-    shelter.plugin.store.pgpcord_lock_state[currentChannelId()] = newMode;
 
-    reprocessMessages(currentChannelId());
+    // If keys are found, toggle secure mode
+    if (hasKeys()) {
+      const newMode = !isSecureMode();
+      console.log("PGPCord: Toggling secure mode to", newMode);
+      setGlobalSecureMode(newMode);
+
+      if (!shelter.plugin.store.pgpcord_lock_state) {
+        shelter.plugin.store.pgpcord_lock_state = {};
+      }
+      shelter.plugin.store.pgpcord_lock_state[channelId] = newMode;
+
+      // Use timeout to ensure state propagates before reprocessing
+      setTimeout(() => reprocessMessages(channelId), 50);
+    } else {
+      // If keys are NOT found, insert invite text
+      const inviteText = `I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: ${WEB_BASE_URL}/`;
+
+      const chatInput = document.querySelector('[role="textbox"]') ||
+        document.querySelector('form textarea') ||
+        document.querySelector('[contenteditable="true"]');
+
+      if (chatInput) {
+        (chatInput as HTMLElement).focus();
+        if (chatInput.getAttribute('contenteditable') === 'true') {
+          const dataTransfer = new DataTransfer();
+          dataTransfer.setData('text/plain', inviteText);
+          const pasteEvent = new ClipboardEvent('paste', {
+            clipboardData: dataTransfer,
+            bubbles: true,
+            cancelable: true
+          });
+          chatInput.dispatchEvent(pasteEvent);
+        } else {
+          const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+          nativeTextAreaValueSetter?.call(chatInput, inviteText);
+          chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      } else {
+        alert(`Could not find chat bar to insert invite. Please send this link manually: ${WEB_BASE_URL}/`);
+      }
+    }
   };
 
   const styles = `
@@ -302,7 +369,7 @@ export default () => {
     if (checkingCurrentUser()) return "Checking your key...";
     if (!currentUserHasKey()) return "You need to set up your key in settings.";
     if (checking()) return "Checking recipient's keys...";
-    if (!hasKeys()) return "Recipient has no key.";
+    if (!hasKeys()) return "Recipient has no key. Click to invite.";
     return isSecureMode() ? "Disable Encryption" : "Enable Encryption";
   };
 
@@ -313,7 +380,11 @@ export default () => {
       onClick={handleClick}
       title={getTitle()}
     >
-      <LockIcon locked={isSecureMode()} disabled={isDisabled()} />
+      {hasKeys() ? (
+        <LockIcon locked={isSecureMode()} disabled={isDisabled()} />
+      ) : (
+        <InviteIcon />
+      )}
     </div>
   );
 };
