@@ -37,7 +37,8 @@ const observeDom = (selector: string, callback: (el: Element) => void) => {
 
 export const patchChatBar = () => {
     // Start polling for keys
-    startKeyPolling();
+    // Start polling for keys - Removed in favor of SecureChatBar internal polling
+    // startKeyPolling();
 
     // 1. Inject UI
     // We look for the buttons container in the chat bar.

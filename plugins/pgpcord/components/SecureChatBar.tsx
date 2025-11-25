@@ -34,6 +34,12 @@ const LockIcon = (props: { locked: boolean, disabled?: boolean }) => (
   </svg>
 );
 
+interface ChannelStatus {
+  hasKeys: boolean;
+  lastChecked: number;
+  isDm: boolean;
+}
+
 export default () => {
   const [isSecureMode, setSecureMode] = createSignal(globalIsSecureMode());
   const [currentUserHasKey, setCurrentUserHasKey] = createSignal(false);
@@ -50,6 +56,11 @@ export default () => {
   });
 
   onMount(async () => {
+    // Initialize store if needed
+    if (!shelter.plugin.store.pgpcord_channel_status) {
+      shelter.plugin.store.pgpcord_channel_status = {};
+    }
+
     setCheckingCurrentUser(true);
     const userKey = await checkCurrentUserKey();
     setCurrentUserHasKey(!!userKey);
@@ -68,19 +79,62 @@ export default () => {
     onCleanup(() => unsubscribe());
   });
 
-  const checkKeys = async (channelId: string) => {
+  // Polling effect for server channels
+  createEffect(() => {
+    const channelId = currentChannelId();
+    if (!channelId) return;
+
+    const channel = shelter.util?.getChannel?.(channelId) || shelter.flux?.stores?.ChannelStore?.getChannel(channelId);
+    if (channel?.guild_id) {
+      // Poll every minute for server channels
+      const interval = setInterval(() => {
+        checkKeys(channelId, true);
+      }, 60000);
+      onCleanup(() => clearInterval(interval));
+    }
+  });
+
+  const checkKeys = async (channelId: string, force = false) => {
+    // Don't check if we don't have our own key yet (unless we are just checking status)
+    // But we need to know if we have keys to enable the button.
+
+    const currentUser = shelter.flux.stores.UserStore.getCurrentUser();
+    if (!currentUser) return;
+
+    // Check cache first
+    const cachedStatus = shelter.plugin.store.pgpcord_channel_status?.[channelId] as ChannelStatus | undefined;
+
+    if (!force && cachedStatus) {
+      // For DMs, use cache forever (until manual re-check via click)
+      // For Servers, use cache if fresh (< 1 min)
+      const isFresh = Date.now() - cachedStatus.lastChecked < 60000;
+
+      if (cachedStatus.isDm || isFresh) {
+        setHasKeys(cachedStatus.hasKeys);
+        setHasCheckedKeys(true);
+
+        // Restore lock state if keys exist
+        if (cachedStatus.hasKeys) {
+          const storedLockState = shelter.plugin.store.pgpcord_lock_state?.[channelId];
+          const shouldLock = storedLockState === undefined ? true : storedLockState;
+          setGlobalSecureMode(shouldLock);
+        }
+        return;
+      }
+    }
+
     setChecking(true);
     try {
-      const currentUser = shelter.flux.stores.UserStore.getCurrentUser();
-      if (!currentUser) return;
-
-      // Check if we have our own keys
-      const ownKey = await checkCurrentUserKey();
-      if (!ownKey) {
-        setHasKeys(false);
-        setHasCheckedKeys(true);
-        setGlobalSecureMode(false);
-        return;
+      // Check if we have our own keys (if not already checked)
+      if (!currentUserHasKey()) {
+        const ownKey = await checkCurrentUserKey();
+        setCurrentUserHasKey(!!ownKey);
+        if (!ownKey) {
+          setHasKeys(false);
+          setHasCheckedKeys(true);
+          setGlobalSecureMode(false);
+          return;
+        }
       }
 
       // Check recipients
@@ -88,14 +142,14 @@ export default () => {
       if (!channel) return;
 
       let recipientIds: string[] = [];
+      let isDm = false;
 
       if (channel.recipients) {
         // DM or Group DM
         recipientIds = [...channel.recipients];
+        isDm = true;
       } else if (channel.guild_id) {
         // Guild Channel
-        // Try to get members from GuildMemberStore (ChannelMemberStore might not expose simple ID list)
-        // We use GuildMemberStore to get all cached members of the guild.
         const guildId = channel.guild_id;
         const memberIds = new Set<string>();
 
@@ -105,8 +159,7 @@ export default () => {
           cachedMembers.forEach((id: string) => memberIds.add(id));
         }
 
-        // 2. Get recent message authors (active users)
-        // This is crucial if GuildMemberStore doesn't have everyone cached
+        // 2. Get recent message authors
         const messages = shelter.flux.stores.MessageStore.getMessages(channelId);
         if (messages && messages.toArray) {
           messages.toArray().forEach((msg: any) => {
@@ -115,49 +168,23 @@ export default () => {
         }
 
         if (memberIds.size > 0) {
-          // Limit to 100 members
           recipientIds = Array.from(memberIds).slice(0, 100);
-        } else {
-          console.warn("PGPCord: Could not find members for guild channel.");
         }
       } else {
-        // Fallback for unknown channel types (e.g. threads might behave like guild channels)
-        recipientIds = [channel.id]; // Likely wrong but safe fallback
+        recipientIds = [channel.id];
       }
 
       // Filter out self
       const otherRecipients = recipientIds.filter((id: string) => id !== currentUser.id);
 
       if (otherRecipients.length === 0) {
-        // Saved Messages or just self or empty guild channel
-        // If it's a guild channel and we found no one, it might be better to say "no keys" than "all found"
-        // But for Saved Messages (DM with self), we want to allow encryption.
-        // Let's assume if it's a guild channel and empty, we can't encrypt for anyone else.
-        if (channel.guild_id) {
-          setHasKeys(false);
-          setHasCheckedKeys(true);
-          setGlobalSecureMode(false);
-          return;
-        }
-
-        setHasKeys(true);
-        setHasCheckedKeys(true);
+        // Empty channel or just self
+        const hasKeysResult = !channel.guild_id; // Allow self-DM encryption
+        updateChannelStatus(channelId, hasKeysResult, isDm);
         return;
       }
 
       const keys = await getPublicKeys(otherRecipients);
-      // For guild channels, we don't need *everyone* to have a key, just *someone*?
-      // The user said "take all recipients id that exist".
-      // This implies we encrypt for whoever has a key.
-      // So if we find ANY keys, we should probably enable secure mode?
-      // BUT, if we enable secure mode, we are implying encryption is possible.
-      // If we only encrypt for 1 person out of 100, the other 99 see garbage.
-      // This is expected for PGP.
-      // So, if we find at least one valid key (other than ours), we should enable it?
-      // Or should we require all fetched members to have keys?
-      // In a DM, we require ALL.
-      // In a Guild, requiring ALL is impossible (not everyone uses PGPCord).
-      // So for Guilds, we should check if we have *any* valid recipients.
 
       let allFound = false;
       if (channel.guild_id) {
@@ -166,24 +193,7 @@ export default () => {
         allFound = keys.length === otherRecipients.length;
       }
 
-      setHasKeys(allFound);
-      setHasCheckedKeys(true);
-
-      // Persistence Logic
-      if (!shelter.plugin.store.pgpcord_lock_state) {
-        shelter.plugin.store.pgpcord_lock_state = {};
-      }
-
-      if (allFound) {
-        const storedState = shelter.plugin.store.pgpcord_lock_state[channelId];
-        const shouldLock = storedState === undefined ? true : storedState;
-        setGlobalSecureMode(shouldLock);
-      } else {
-        setGlobalSecureMode(false);
-      }
-
-      // Trigger reprocessing to apply visibility based on the new mode
-      setTimeout(() => reprocessMessages(channelId), 100);
+      updateChannelStatus(channelId, allFound, isDm);
 
     } catch (e) {
       console.error("PGPCord: Error checking keys", e);
@@ -194,75 +204,63 @@ export default () => {
     }
   };
 
-  const onChannelChange = (channelId: string) => {
-    setCurrentChannelId(channelId);
-    setHasKeys(false);
-    setHasCheckedKeys(false);
-    // Don't disable secure mode immediately; let checkKeys decide based on persistence
-    checkKeys(channelId);
-  };
+  const updateChannelStatus = (channelId: string, hasKeysResult: boolean, isDm: boolean) => {
+    setHasKeys(hasKeysResult);
+    setHasCheckedKeys(true);
 
-  const handleClick = async () => {
-    if (checking() || checkingCurrentUser()) return;
-
-    if (!currentUserHasKey()) {
-      alert("You need to set up your PGP key in the PGPCord settings before you can send encrypted messages.");
-      // shelter.ui.openSettings("PGPCord"); // This would be ideal
-      return;
+    // Update cache
+    if (!shelter.plugin.store.pgpcord_channel_status) {
+      shelter.plugin.store.pgpcord_channel_status = {};
     }
+    shelter.plugin.store.pgpcord_channel_status[channelId] = {
+      hasKeys: hasKeysResult,
+      lastChecked: Date.now(),
+      isDm
+    };
 
-    const channelId = currentChannelId();
-    if (!channelId) return;
-
-    // If we haven't checked keys yet (e.g. failed initially), check now
-    if (!hasCheckedKeys()) {
-      await checkKeys(channelId);
-    }
-
-    if (hasKeys()) {
-      const newMode = !isSecureMode();
-      setGlobalSecureMode(newMode);
-
+    // Update global secure mode based on result and preference
+    if (hasKeysResult) {
       if (!shelter.plugin.store.pgpcord_lock_state) {
         shelter.plugin.store.pgpcord_lock_state = {};
       }
-      shelter.plugin.store.pgpcord_lock_state[channelId] = newMode;
-
-      // Reprocess messages
-      reprocessMessages(channelId);
+      const storedState = shelter.plugin.store.pgpcord_lock_state[channelId];
+      const shouldLock = storedState === undefined ? true : storedState;
+      setGlobalSecureMode(shouldLock);
     } else {
-      const inviteText = `I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: ${WEB_BASE_URL}/`;
-
-      // Try to find the chat input using multiple selectors
-      const chatInput = document.querySelector('[role="textbox"]') ||
-        document.querySelector('form textarea') ||
-        document.querySelector('[contenteditable="true"]');
-
-      if (chatInput) {
-        // Focus the input first
-        (chatInput as HTMLElement).focus();
-
-        // For Slate editor (contenteditable div)
-        if (chatInput.getAttribute('contenteditable') === 'true') {
-          // Simulate a paste event which is handled by Slate to update its internal state
-          const dataTransfer = new DataTransfer();
-          dataTransfer.setData('text/plain', inviteText);
-          const pasteEvent = new ClipboardEvent('paste', {
-            clipboardData: dataTransfer,
-            bubbles: true,
-            cancelable: true
-          });
-          chatInput.dispatchEvent(pasteEvent);
-        } else {
-          // For standard textareas
-          const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
-          nativeTextAreaValueSetter?.call(chatInput, inviteText);
-          chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      } else {
-        alert(`Could not find chat bar to insert invite. Please send this link manually: ${WEB_BASE_URL}/`);
-      }
+      setGlobalSecureMode(false);
     }
+
+    // Trigger reprocessing
+    setTimeout(() => reprocessMessages(channelId), 100);
+  };
+
+  const onChannelChange = (channelId: string) => {
+    setCurrentChannelId(channelId);
+
+    // Reset UI state immediately to avoid "Green then Red" glitch
+    setHasKeys(false);
+    setHasCheckedKeys(false);
+    setGlobalSecureMode(false);
+
+    // Check keys (will use cache if available)
+    checkKeys(channelId);
+  };
+
+  const isDisabled = () => !currentUserHasKey() || !hasKeys();
+
+  const handleClick = async () => {
+    if (isDisabled() || checking() || checkingCurrentUser()) return;
+
+    // Toggle secure mode
+    const newMode = !isSecureMode();
+    setGlobalSecureMode(newMode);
+
+    if (!shelter.plugin.store.pgpcord_lock_state) {
+      shelter.plugin.store.pgpcord_lock_state = {};
+    }
+    shelter.plugin.store.pgpcord_lock_state[currentChannelId()] = newMode;
+
+    reprocessMessages(currentChannelId());
   };
 
   const styles = `
@@ -279,7 +277,12 @@ export default () => {
       border-radius: 4px;
       transition: background-color 0.15s ease-out, color 0.15s ease-out;
     }
-    .secure-chat-bar-button:hover {
+    .secure-chat-bar-button.disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .secure-chat-bar-button:hover:not(.disabled) {
       background-color: var(--background-modifier-hover);
       color: var(--interactive-hover);
     }
@@ -299,20 +302,18 @@ export default () => {
     if (checkingCurrentUser()) return "Checking your key...";
     if (!currentUserHasKey()) return "You need to set up your key in settings.";
     if (checking()) return "Checking recipient's keys...";
-    if (!hasKeys() && hasCheckedKeys()) return "Recipient has no key. Click to invite.";
-    // Always check on click, so this state is less relevant, but good for clarity
-    if (!hasKeys() && !hasCheckedKeys()) return "Click to check for recipient's key.";
-    return "Toggle Secure Mode";
+    if (!hasKeys()) return "Recipient has no key.";
+    return isSecureMode() ? "Disable Encryption" : "Enable Encryption";
   };
 
   return (
     <div
       ref={ref}
-      class="secure-chat-bar-button"
+      class={`secure-chat-bar-button ${isDisabled() ? "disabled" : ""}`}
       onClick={handleClick}
       title={getTitle()}
     >
-      <LockIcon locked={isSecureMode()} disabled={!currentUserHasKey() || (!hasKeys() && hasCheckedKeys())} />
+      <LockIcon locked={isSecureMode()} disabled={isDisabled()} />
     </div>
   );
 };
