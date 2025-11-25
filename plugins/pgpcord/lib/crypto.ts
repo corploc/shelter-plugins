@@ -2,10 +2,12 @@ import * as openpgp from 'openpgp';
 import { UserKeyPair, PluginSettings } from './types';
 import { getPublicKeys } from './api';
 
+import { createSignal } from "solid-js";
+
 // Assuming Shelter's data API is available globally via `shelter`
 declare const shelter: any;
 
-let cachedPrivateKey: openpgp.PrivateKey | null = null;
+const [privateKey, setPrivateKey] = createSignal<openpgp.PrivateKey | null>(null);
 let cacheTimestamp: number | null = null;
 
 export class PassphraseRequiredError extends Error {
@@ -56,7 +58,7 @@ export async function decryptAndCachePrivateKey(passphrase: string): Promise<ope
   // Check if the key is already decrypted
   if (privateKey.isDecrypted()) {
     console.log("PGPCord: Private key is already decrypted, caching directly.");
-    cachedPrivateKey = privateKey;
+    setPrivateKey(privateKey);
     cacheTimestamp = Date.now();
     return privateKey;
   }
@@ -66,7 +68,7 @@ export async function decryptAndCachePrivateKey(passphrase: string): Promise<ope
     passphrase
   });
 
-  cachedPrivateKey = decryptedKey;
+  setPrivateKey(decryptedKey);
   cacheTimestamp = Date.now();
 
   return decryptedKey;
@@ -78,26 +80,32 @@ export async function decryptAndCachePrivateKey(passphrase: string): Promise<ope
 export function getCachedPrivateKey(): openpgp.PrivateKey | null {
   const settings: PluginSettings = shelter.plugin.store.pgpcord_settings || { cacheDuration: 'session', cacheTimeMinutes: 15 };
 
-  if (!cachedPrivateKey || !cacheTimestamp) return null;
+  const pk = privateKey();
+  if (!pk || !cacheTimestamp) return null;
   if (settings.cacheDuration === 'none') return null;
 
   if (settings.cacheDuration === 'time') {
     const elapsedMinutes = (Date.now() - cacheTimestamp) / (1000 * 60);
     if (elapsedMinutes > settings.cacheTimeMinutes) {
-      cachedPrivateKey = null;
+      setPrivateKey(null);
       cacheTimestamp = null;
       return null;
     }
   }
 
-  return cachedPrivateKey;
+  return pk;
 }
+
+/**
+ * Accessor for the private key signal (for reactive UI).
+ */
+export const usePrivateKey = privateKey;
 
 /**
  * Clears the cached private key from memory.
  */
 export function clearCachedPrivateKey(): void {
-  cachedPrivateKey = null;
+  setPrivateKey(null);
   cacheTimestamp = null;
 }
 
@@ -215,7 +223,8 @@ export async function decryptMessage(encryptedMessage: string): Promise<string> 
   console.log("PGPCord: Message encrypted for key IDs:", encryptionKeyIds.map((k: any) => k.toHex()));
 
   // Check if any of the message's encryption keys match any of our keys
-  const isForMe = encryptionKeyIds.some((msgKeyId: any) =>
+  // If the message is anonymous (no key IDs), we should try to decrypt it anyway.
+  const isForMe = encryptionKeyIds.length === 0 || encryptionKeyIds.some((msgKeyId: any) =>
     allKeyIds.includes(msgKeyId.toHex().toLowerCase())
   );
   console.log("PGPCord: Is message for me?", isForMe);

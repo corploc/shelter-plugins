@@ -1,6 +1,6 @@
 import { render } from "solid-js/web";
-import { createSignal, onMount, Show, onCleanup } from "solid-js";
-import { decryptMessage, getCachedPrivateKey, PassphraseRequiredError, decryptAndCachePrivateKey } from "../lib/crypto";
+import { createSignal, onMount, Show, onCleanup, createEffect } from "solid-js";
+import { decryptMessage, getCachedPrivateKey, PassphraseRequiredError, decryptAndCachePrivateKey, usePrivateKey } from "../lib/crypto";
 import { isSecureMode } from "../lib/store";
 
 declare const shelter: any;
@@ -103,8 +103,16 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
                 setState("waiting_for_passphrase");
                 if (cached) cached.state = "passphrase_required";
             } else if (err.name === "WrongKeyError") {
-                setState("wrong_key");
-                if (cached) cached.state = "wrong_key";
+                // If we are locked, we might just not have the right key decrypted yet.
+                // Suppress "Wrong Key" and show "Passphrase Required" instead.
+                const pk = usePrivateKey();
+                if (!pk) {
+                    setState("waiting_for_passphrase");
+                    if (cached) cached.state = "passphrase_required";
+                } else {
+                    setState("wrong_key");
+                    if (cached) cached.state = "wrong_key";
+                }
             } else {
                 console.error("PGPCord: Decryption failed", err);
                 setState("error");
@@ -136,6 +144,13 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
 
     onMount(() => {
         attemptDecryption();
+    });
+
+    createEffect(() => {
+        const pk = usePrivateKey();
+        if (pk && (state() === "waiting_for_passphrase" || state() === "wrong_key")) {
+            attemptDecryption();
+        }
     });
 
     return (
@@ -418,12 +433,46 @@ const handleEncryptedText = (element: Element, text: string) => {
 
     // Helper to inject and store cleanup
     const inject = (component: any) => {
-        element.setAttribute("data-pgpcord-injected", "true");
-        element.innerHTML = "";
-        const container = document.createElement("div");
-        element.appendChild(container);
-        const dispose = render(component, container);
-        if (cached) cached.cleanup = dispose;
+        try {
+            element.setAttribute("data-pgpcord-injected", "true");
+
+            // Hide the original element instead of removing children
+            // This preserves React's internal references
+            (element as HTMLElement).style.display = "none";
+
+            const container = document.createElement("div");
+
+            // Insert container as a sibling, immediately after the element
+            if (element.parentNode) {
+                element.parentNode.insertBefore(container, element.nextSibling);
+            } else {
+                // Fallback if parent is missing (unlikely if we just found it)
+                element.appendChild(container);
+            }
+
+            const dispose = render(component, container);
+
+            if (cached) {
+                cached.cleanup = () => {
+                    try {
+                        dispose();
+                    } catch (e) {
+                        console.warn("PGPCord: Error disposing component", e);
+                    }
+                    try {
+                        // Remove container
+                        container.remove();
+                        // Restore original element visibility
+                        (element as HTMLElement).style.display = "";
+                        element.removeAttribute("data-pgpcord-injected");
+                    } catch (e) {
+                        console.warn("PGPCord: Error restoring DOM", e);
+                    }
+                };
+            }
+        } catch (e) {
+            console.error("PGPCord: Failed to inject component", e);
+        }
     };
 
     // If message is in wrong_key state, show that UI
@@ -659,4 +708,6 @@ export const patchMessageContent = () => {
 export const unpatchMessage = () => {
     if (unobserve) unobserve();
     if (uninterceptEdit) uninterceptEdit();
+    // Cleanup lock icons
+    document.querySelectorAll(".pgpcord-lock-icon").forEach(e => e.remove());
 };
