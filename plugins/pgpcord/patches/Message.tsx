@@ -193,9 +193,9 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
                                 "flex-grow": "1",
                                 "padding": "8px 12px",
                                 "border-radius": "4px",
-                                "border": "1px solid var(--input-background)",
-                                "background-color": "var(--input-background)",
-                                "color": "var(--text-normal)",
+                                "border": "1px solid var(--background-modifier-accent)",
+                                "background-color": "white",
+                                "color": "black",
                                 "font-size": "14px"
                             }}
                         />
@@ -465,6 +465,10 @@ const handleEncryptedText = (element: Element, text: string) => {
             }
 
             const dispose = render(component, container);
+
+            // Force layout update to ensure virtual list accounts for height change
+            // Use setTimeout to allow DOM to settle
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
 
             if (cached) {
                 cached.cleanup = () => {
