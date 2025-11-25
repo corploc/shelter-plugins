@@ -17,7 +17,9 @@ PGPCord brings true End-to-End Encryption (E2EE) to Discord using the OpenPGP st
 - [x] **Encrypt Multi-Recipient**: Works seamlessly in Group DMs and Server Channels.
 - [x] **Automated Key Discovery**: Automatically finds public keys based on Discord IDs using our keyserver.
 - [x] **Ping Working**: Mentions and notifications work as expected.
-- [x] **Fully Functional Chat**: Code blocks, markdown, and standard Discord formatting are preserved inside encrypted messages.
+- [x] **Fully Functional Chat**: Code blocks, markdown, and standard Discord formatting are 
+preserved inside encrypted messages.
+- [x] **No log policy**: The Keyserver does not store any keys nor any logs you can delete all your traces with the delete button in settings.
 - [ ] **Image/File Upload**: *Coming Soon!* (Currently placeholder)
 
 ---
@@ -51,11 +53,14 @@ Go to **Settings > PGPCord**.
 Generate a new key pair with a **strong passphrase**.
 *Your private key is encrypted with this passphrase. If you lose it, your messages are lost forever.*
 
-![Settings Placeholder](https://via.placeholder.com/800x400?text=Settings+Page+Screenshot)
 
 ### 2. Publish Your Identity
 Click the **Publish** button in settings.
 You will be asked to link your current Discord account to verify your identity. This allows others to find your public key automatically.
+
+> You can delete your identity by clicking the **Delete** button in settings.
+
+![Settings Placeholder](img/settings.png)
 
 ### 3. Start Chatting!
 
