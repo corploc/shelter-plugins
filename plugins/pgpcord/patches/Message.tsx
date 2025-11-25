@@ -194,8 +194,8 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
                                 "padding": "8px 12px",
                                 "border-radius": "4px",
                                 "border": "1px solid var(--background-modifier-accent)",
-                                "background-color": "white",
-                                "color": "black",
+                                "background-color": "black",
+                                "color": "white",
                                 "font-size": "14px"
                             }}
                         />
