@@ -165,7 +165,7 @@ export const SecureChatBar = () => {
             lockState[channelId] = newMode;
             Store.lockState = lockState;
         } else {
-            const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgcordweb.bash62.workers.dev/";
+            const inviteText = `I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: ${WEB_BASE_URL}/`;
 
             // Try to find the chat input using multiple selectors
             const chatInput = document.querySelector('[role="textbox"]') ||

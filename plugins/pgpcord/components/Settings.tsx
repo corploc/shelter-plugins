@@ -1,4 +1,5 @@
 import { createSignal, Show, onMount } from "solid-js";
+import { WEB_BASE_URL } from "../lib/constants";
 import { generateKeyPair, saveKeyPairToLocalStorage, loadKeyPairFromLocalStorage, encryptPrivateKey, decryptPrivateKey } from "../lib/crypto";
 import { UserKeyPair, PluginSettings, CacheDuration } from "../lib/types";
 import { checkCurrentUserKey } from "../lib/api";
@@ -77,7 +78,7 @@ export default () => {
     if (!kp) return;
 
     try {
-      const response = await fetch('https://pgcordweb.bash62.workers.dev/api/cache-key', {
+      const response = await fetch(`${WEB_BASE_URL}/api/cache-key`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +100,7 @@ export default () => {
       if (data.redirect_url) {
         const redirectUrl = data.redirect_url.startsWith('http')
           ? data.redirect_url
-          : `https://pgcordweb.bash62.workers.dev${data.redirect_url}`;
+          : `${WEB_BASE_URL}${data.redirect_url}`;
         window.open(redirectUrl, '_blank');
       } else {
         throw new Error('No redirect URL returned');
@@ -134,7 +135,7 @@ export default () => {
 
         // 5. Redirect to backend delete route with validate=true
         // This will handle OAuth and actual server-side deletion
-        window.open("https://pgcordweb.bash62.workers.dev/delete?validate=true", "_blank");
+        window.open(`${WEB_BASE_URL}/delete?validate=true`, "_blank");
 
         console.log("PGPCord: Local data cleared, redirecting to server deletion...");
       } catch (err) {

@@ -1,4 +1,5 @@
 import { createSignal, onMount, onCleanup, createEffect } from "solid-js";
+import { WEB_BASE_URL } from "../lib/constants";
 import { checkCurrentUserKey, getPublicKeys } from "../lib/api";
 import { isSecureMode as globalIsSecureMode, setSecureMode as setGlobalSecureMode } from "../lib/store";
 import { reprocessMessages } from "../patches/Message";
@@ -230,7 +231,7 @@ export default () => {
       // Reprocess messages
       reprocessMessages(channelId);
     } else {
-      const inviteText = "I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: https://pgcordweb.bash62.workers.dev/";
+      const inviteText = `I am using PGPCord to encrypt my messages. Please install it and set up your keys so we can chat securely: ${WEB_BASE_URL}/`;
 
       // Try to find the chat input using multiple selectors
       const chatInput = document.querySelector('[role="textbox"]') ||
@@ -259,7 +260,7 @@ export default () => {
           chatInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
       } else {
-        alert("Could not find chat bar to insert invite. Please send this link manually: https://pgcordweb.bash62.workers.dev/");
+        alert(`Could not find chat bar to insert invite. Please send this link manually: ${WEB_BASE_URL}/`);
       }
     }
   };
