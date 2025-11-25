@@ -58,11 +58,24 @@ Click the **Publish** button in settings.
 You will be asked to link your current Discord account to verify your identity. This allows others to find your public key automatically.
 
 ### 3. Start Chatting!
-Head to any chat. You will see a **Lock Icon** 🔓 in the chat bar.
-Click it to toggle **Secure Mode** 🔒.
+
+Enable disable encryption per chat by pressing the **Lock Icon** in the chat bar.
+
+![Unlock Icon](img/unlock.png)
+![Lock Icon](img/private.png)
+
 When the lock is green, everything you type is encrypted.
 
-![Chat Placeholder](https://via.placeholder.com/800x200?text=Secure+Chat+Bar+Screenshot)
+When reloading the app you will need to reenter your passphrase.
+
+![Prompt password](img/prompt.png)
+
+#### 4. Group Chat
+![Private Chat](img/privatechat.png)
+
+#### 5. Plain Chat
+
+![Plain Chat](img/plainchat.png)
 
 ---
 
@@ -84,6 +97,13 @@ npm install
 ```bash
 npx lune build pgpcord
 ```
+
+---
+
+### Known Issues
+
+- Dom is not reloaded without scrolling when prompt or miss keyz
+- Shelter injector in chrome is not working due to data persistence
 
 ---
 
