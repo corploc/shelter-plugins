@@ -70,12 +70,11 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
     const cached = channelStore?.get(props.messageId);
 
     const [content, setContent] = createSignal(cached?.decrypted || "");
-    const isLocked = !usePrivateKey();
     const [state, setState] = createSignal<"decrypting" | "decrypted" | "error" | "waiting_for_passphrase" | "wrong_key">(
         cached?.state === "wrong_key" ? "wrong_key" :
             cached?.state === "passphrase_required" ? "waiting_for_passphrase" :
                 cached?.state === "decrypted" ? "decrypted" :
-                    (isLocked ? "waiting_for_passphrase" : "decrypting")
+                    "decrypting"
     );
     const [passphrase, setPassphrase] = createSignal("");
     let mounted = true;
@@ -151,12 +150,8 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
 
     onMount(() => {
         // Only attempt decryption if we are in the initial "decrypting" state
-        // OR if we defaulted to "waiting_for_passphrase" (locked) but haven't checked cache yet (background check for Wrong Key)
+        // If we loaded from cache as "wrong_key" or "passphrase_required", we wait for user action or global key change
         if (state() === "decrypting") {
-            attemptDecryption();
-        } else if (state() === "waiting_for_passphrase" && !cached?.state) {
-            // We are locked, so we show the prompt immediately, but we still check in background
-            // to see if it's actually a "Wrong Key" message.
             attemptDecryption();
         }
     });
@@ -296,6 +291,7 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
 
     const secure = isSecureMode();
     const privateKey = getCachedPrivateKey(); // Check if unlocked
+    console.log(`PGPCord: applyMessageVisibility ${messageId} secure=${secure} hasKey=${!!privateKey}`);
 
     // Sanitize PGP block: ensure blank line after header
     const sanitizedContent = encryptedContent.replace(
@@ -388,6 +384,7 @@ export const reprocessMessages = (targetChannelId?: string) => {
         const channelStore = channelMessageStore.get(targetChannelId);
         if (channelStore) {
             channelStore.forEach((data, messageId) => {
+                console.log(`PGPCord: Reprocessing message ${messageId} state=${data.state}`);
                 // Reset state to encrypted to allow re-processing
                 // This ensures that if we just unlocked, we try to decrypt everything that was waiting
                 if (data.state === "passphrase_required" || data.state === "encrypted") {
