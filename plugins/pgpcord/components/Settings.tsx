@@ -96,11 +96,15 @@ export default () => {
       const data = await response.json();
 
       // Navigate to the returned redirect_url
-      // Server should return an absolute URL, but handle both cases
       if (data.redirect_url) {
+        // The server returns a full URL or a relative path?
+        // The user example shows: "http://localhost:3000/dashboard?key_token=..."
+        // So it seems to be a full URL.
+        // But let's be safe and handle relative paths too, just in case.
         const redirectUrl = data.redirect_url.startsWith('http')
           ? data.redirect_url
-          : `${WEB_BASE_URL}${data.redirect_url}`;
+          : `${WEB_BASE_URL}${data.redirect_url.startsWith('/') ? '' : '/'}${data.redirect_url}`;
+
         window.open(redirectUrl, '_blank');
       } else {
         throw new Error('No redirect URL returned');
