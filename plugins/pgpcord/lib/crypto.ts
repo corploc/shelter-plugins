@@ -221,7 +221,9 @@ export async function decryptMessage(encryptedMessage: string): Promise<string> 
   console.log("PGPCord: Is message for me?", isForMe);
 
   if (!isForMe) {
-    console.warn("PGPCord: Message is not encrypted for any of my keys", allKeyIds, "Message key IDs:", encryptionKeyIds.map((k: any) => k.toHex()));
+    console.warn("PGPCord: Message is not encrypted for any of my keys");
+    console.warn("PGPCord: My Key IDs:", allKeyIds);
+    console.warn("PGPCord: Message Key IDs:", encryptionKeyIds.map((k: any) => k.toHex()));
     throw new WrongKeyError("Message not encrypted for this key.");
   }
 

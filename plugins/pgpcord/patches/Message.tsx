@@ -1,5 +1,5 @@
 import { render } from "solid-js/web";
-import { createSignal, onMount, Show } from "solid-js";
+import { createSignal, onMount, Show, onCleanup } from "solid-js";
 import { decryptMessage, getCachedPrivateKey, PassphraseRequiredError, decryptAndCachePrivateKey } from "../lib/crypto";
 import { isSecureMode } from "../lib/store";
 
@@ -68,6 +68,11 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
     const [content, setContent] = createSignal("");
     const [state, setState] = createSignal<"decrypting" | "decrypted" | "error" | "waiting_for_passphrase" | "wrong_key">("decrypting");
     const [passphrase, setPassphrase] = createSignal("");
+    let mounted = true;
+
+    onCleanup(() => {
+        mounted = false;
+    });
 
     const attemptDecryption = async () => {
         try {
@@ -84,11 +89,15 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
 
             // If successful, we want to trigger native rendering
             updateMessageContent(props.messageId, props.channelId, decrypted);
-            setContent(decrypted); // Set content for local display as fallback
-            setState("decrypted");
+            if (mounted) {
+                setContent(decrypted); // Set content for local display as fallback
+                setState("decrypted");
+            }
         } catch (err) {
             const channelStore = channelMessageStore.get(props.channelId);
             const cached = channelStore?.get(props.messageId);
+
+            if (!mounted) return;
 
             if (err instanceof PassphraseRequiredError) {
                 setState("waiting_for_passphrase");
@@ -118,8 +127,10 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
             reprocessMessages(props.channelId);
         } catch (err) {
             console.error("PGPCord: Passphrase incorrect or decryption failed", err);
-            setState("error");
-            setContent("Incorrect passphrase or decryption failed.");
+            if (mounted) {
+                setState("error");
+                setContent("Incorrect passphrase or decryption failed.");
+            }
         }
     };
 
@@ -152,7 +163,7 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
                             type="password"
                             placeholder="Enter passphrase to unlock key..."
                             value={passphrase()}
-                            onInput={(e) => setPassphrase(e.currentTarget.value)}
+                            onInput={(e: any) => setPassphrase(e.currentTarget.value)}
                             style={{
                                 "flex-grow": "1",
                                 "padding": "8px 12px",
