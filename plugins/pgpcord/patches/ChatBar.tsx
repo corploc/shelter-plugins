@@ -1,7 +1,7 @@
 import { render } from "solid-js/web";
 import SecureChatBar from "../components/SecureChatBar";
 import { encryptMessage } from "../lib/crypto";
-import { isSecureMode } from "../lib/store";
+import { isSecureMode, setProcessing } from "../lib/store";
 import { startKeyPolling, getPublicKeys } from "../lib/api";
 
 declare const shelter: any;
@@ -161,6 +161,7 @@ export const patchChatBar = () => {
                     mentions.push(mentionMatch[0]);
                 }
 
+                setProcessing(true);
                 const encrypted = await encryptMessage(content, validRecipientIds);
 
                 // Append mentions to preserve pings
@@ -179,6 +180,8 @@ export const patchChatBar = () => {
                 }
             } catch (e) {
                 console.error("PGPCord: Failed to encrypt", e);
+            } finally {
+                setProcessing(false);
             }
             return send(req);
         });

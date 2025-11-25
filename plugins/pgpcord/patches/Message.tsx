@@ -65,8 +65,18 @@ const getMessageId = (element: Element): string | null => {
 };
 
 const DecryptedMessageContainer = (props: { encryptedContent: string, messageId: string, channelId: string }) => {
-    const [content, setContent] = createSignal("");
-    const [state, setState] = createSignal<"decrypting" | "decrypted" | "error" | "waiting_for_passphrase" | "wrong_key">("decrypting");
+    // Initialize state from cache if available
+    const channelStore = channelMessageStore.get(props.channelId);
+    const cached = channelStore?.get(props.messageId);
+
+    const [content, setContent] = createSignal(cached?.decrypted || "");
+    const isLocked = !usePrivateKey();
+    const [state, setState] = createSignal<"decrypting" | "decrypted" | "error" | "waiting_for_passphrase" | "wrong_key">(
+        cached?.state === "wrong_key" ? "wrong_key" :
+            cached?.state === "passphrase_required" ? "waiting_for_passphrase" :
+                cached?.state === "decrypted" ? "decrypted" :
+                    (isLocked ? "waiting_for_passphrase" : "decrypting")
+    );
     const [passphrase, setPassphrase] = createSignal("");
     let mounted = true;
 
@@ -97,22 +107,19 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
             const channelStore = channelMessageStore.get(props.channelId);
             const cached = channelStore?.get(props.messageId);
 
+            // Update cache regardless of mount state to prevent reprocessing
+            if (err instanceof PassphraseRequiredError) {
+                if (cached) cached.state = "passphrase_required";
+            } else if ((err as any).name === "WrongKeyError") {
+                if (cached) cached.state = "wrong_key";
+            }
+
             if (!mounted) return;
 
             if (err instanceof PassphraseRequiredError) {
                 setState("waiting_for_passphrase");
-                if (cached) cached.state = "passphrase_required";
             } else if (err.name === "WrongKeyError") {
-                // If we are locked, we might just not have the right key decrypted yet.
-                // Suppress "Wrong Key" and show "Passphrase Required" instead.
-                const pk = usePrivateKey();
-                if (!pk) {
-                    setState("waiting_for_passphrase");
-                    if (cached) cached.state = "passphrase_required";
-                } else {
-                    setState("wrong_key");
-                    if (cached) cached.state = "wrong_key";
-                }
+                setState("wrong_key");
             } else {
                 console.error("PGPCord: Decryption failed", err);
                 setState("error");
@@ -143,12 +150,20 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
     };
 
     onMount(() => {
-        attemptDecryption();
+        // Only attempt decryption if we are in the initial "decrypting" state
+        // OR if we defaulted to "waiting_for_passphrase" (locked) but haven't checked cache yet (background check for Wrong Key)
+        if (state() === "decrypting") {
+            attemptDecryption();
+        } else if (state() === "waiting_for_passphrase" && !cached?.state) {
+            // We are locked, so we show the prompt immediately, but we still check in background
+            // to see if it's actually a "Wrong Key" message.
+            attemptDecryption();
+        }
     });
 
     createEffect(() => {
         const pk = usePrivateKey();
-        if (pk && (state() === "waiting_for_passphrase" || state() === "wrong_key")) {
+        if (pk && state() === "waiting_for_passphrase") {
             attemptDecryption();
         }
     });
@@ -183,8 +198,8 @@ const DecryptedMessageContainer = (props: { encryptedContent: string, messageId:
                                 "flex-grow": "1",
                                 "padding": "8px 12px",
                                 "border-radius": "4px",
-                                "border": "1px solid var(--background-tertiary)",
-                                "background-color": "var(--background-tertiary)",
+                                "border": "1px solid var(--input-background)",
+                                "background-color": "var(--input-background)",
                                 "color": "var(--text-normal)",
                                 "font-size": "14px"
                             }}
@@ -308,17 +323,17 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
             }
             return;
         } else if (cached.state === "wrong_key") {
-            // Wrong key - show PGP block in secure mode so UI can display error
+            // Wrong key - show placeholder so UI can display error without flashing PGP block
             if (secure) {
-                updateMessageContent(messageId, channelId, encryptedContent);
+                updateMessageContent(messageId, channelId, "🔒 Encrypted Message");
             } else {
                 updateMessageContent(messageId, channelId, "🔒 Encrypted Message");
             }
             return;
         } else if (cached.state === "passphrase_required") {
-            // Needs passphrase (and we still don't have key) - show PGP block in secure mode so UI can prompt
+            // Needs passphrase - show placeholder so UI can prompt without flashing PGP block
             if (secure) {
-                updateMessageContent(messageId, channelId, encryptedContent);
+                updateMessageContent(messageId, channelId, "🔒 Encrypted Message");
             } else {
                 updateMessageContent(messageId, channelId, "🔒 Encrypted Message");
             }
@@ -333,10 +348,12 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
         // Secure Mode
         if (privateKey) {
             // Unlocked: Try to decrypt (but only once)
+
+            // HIDE PGP BLOCK IMMEDIATELY to prevent flash while decrypting
+            updateMessageContent(messageId, channelId, "🔒 Encrypted Message");
+
             try {
-                const decrypted = await decryptMessage(sanitizedContent); // Use original content, let crypto lib handle parsing if possible, or use sanitized if needed.
-                // Actually, the error "Mandatory blank line missing" is specific.
-                // Let's try to fix it by ensuring double newline after Version header if present, or just after BEGIN if not.
+                const decrypted = await decryptMessage(sanitizedContent);
 
                 if (cached) {
                     cached.decrypted = decrypted;
@@ -344,21 +361,21 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
                 }
                 updateMessageContent(messageId, channelId, decrypted);
             } catch (err) {
-                if (err.name === "WrongKeyError") {
+                if ((err as any).name === "WrongKeyError") {
                     if (cached) cached.state = "wrong_key";
                     // Don't update the message - return to let the UI component show
                     return;
                 } else {
                     // For other errors, mark as passphrase_required to avoid retry
                     if (cached) cached.state = "passphrase_required";
-                    // Show PGP block for errors (triggers UI injection)
-                    updateMessageContent(messageId, channelId, encryptedContent);
+                    // Show placeholder for errors (triggers UI injection via observer if not already there)
+                    updateMessageContent(messageId, channelId, "🔒 Encrypted Message");
                 }
             }
         } else {
-            // Locked: Show PGP block (which triggers UI injection)
+            // Locked: Show placeholder (which triggers UI injection)
             if (cached) cached.state = "passphrase_required";
-            updateMessageContent(messageId, channelId, encryptedContent);
+            updateMessageContent(messageId, channelId, "🔒 Encrypted Message");
         }
     }
 };
@@ -620,7 +637,25 @@ export const patchMessageContent = () => {
 
         if (!messageId) return;
 
-        // 1. Check for PGP block in text content
+        // 1. Check if this message is known to be encrypted (cached)
+        // This handles cases where we've replaced the content with a placeholder or decrypted text
+        const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
+        if (channelId) {
+            const channelStore = channelMessageStore.get(channelId);
+            if (channelStore && channelStore.has(messageId)) {
+                const cached = channelStore.get(messageId)!;
+                // We pass the *original* encrypted content from cache, not the current DOM text
+                // This ensures we can re-inject UI even if DOM shows "🔒 Encrypted Message"
+                const contentElement = messageElement.querySelector("[id^='message-content-']");
+                if (contentElement) {
+                    handleEncryptedText(contentElement, cached.encrypted);
+                    injectLockIcon(messageElement);
+                    return;
+                }
+            }
+        }
+
+        // 2. Check for PGP block in text content (new messages)
         // We look for the message content div inside
         const contentElement = messageElement.querySelector("[id^='message-content-']");
         if (contentElement) {
@@ -633,7 +668,7 @@ export const patchMessageContent = () => {
             }
         }
 
-        // 2. Check for message.txt attachment
+        // 3. Check for message.txt attachment
         const attachments = messageElement.querySelectorAll("[class*='attachment']");
         attachments.forEach(attachment => {
             const textContent = attachment.textContent || "";
@@ -647,7 +682,7 @@ export const patchMessageContent = () => {
 
         // 3. Check if this message is known to be encrypted (e.g. already decrypted)
         // and ensure the lock icon is present
-        const channelId = shelter.flux.stores.SelectedChannelStore.getChannelId();
+        // Note: channelId is already defined above
         if (channelId) {
             const channelStore = channelMessageStore.get(channelId);
             if (channelStore && channelStore.has(messageId)) {

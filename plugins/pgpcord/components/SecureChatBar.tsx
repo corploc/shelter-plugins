@@ -1,7 +1,7 @@
 import { createSignal, onMount, onCleanup, createEffect } from "solid-js";
 import { WEB_BASE_URL } from "../lib/constants";
 import { checkCurrentUserKey, getPublicKeys } from "../lib/api";
-import { isSecureMode as globalIsSecureMode, setSecureMode as setGlobalSecureMode } from "../lib/store";
+import { isSecureMode as globalIsSecureMode, setSecureMode as setGlobalSecureMode, isProcessing } from "../lib/store";
 import { reprocessMessages } from "../patches/Message";
 
 declare const shelter: any;
@@ -57,6 +57,10 @@ const InviteIcon = () => (
     <line x1="20" y1="8" x2="20" y2="14"></line>
     <line x1="23" y1="11" x2="17" y2="11"></line>
   </svg>
+);
+
+const Spinner = () => (
+  <div class="spinner-dots" style={{ "width": "16px", "height": "16px", "border": "2px solid var(--text-muted)", "border-top-color": "var(--brand-experiment)", "border-radius": "50%", "animation": "spin 1s linear infinite" }}></div>
 );
 
 export default () => {
@@ -380,7 +384,9 @@ export default () => {
       onClick={handleClick}
       title={getTitle()}
     >
-      {hasKeys() ? (
+      {isProcessing() ? (
+        <Spinner />
+      ) : hasKeys() ? (
         <LockIcon locked={isSecureMode()} disabled={isDisabled()} />
       ) : (
         <InviteIcon />
