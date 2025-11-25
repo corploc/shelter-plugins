@@ -1,91 +1,92 @@
-# pgpcord
+# 🔒 PGPCord
 
-This is the repository for the pgpcord project.
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![SolidJS](https://img.shields.io/badge/SolidJS-2c4f7c?style=for-the-badge&logo=solid&logoColor=white)
+![Shelter](https://img.shields.io/badge/Shelter-Plugin-blueviolet?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-## Description
+> **You can talk with anybody that has pgpcord installed!**
 
-pgpcord is a security-focused Vencord plugin that brings PGP encryption to your Discord communications.
+PGPCord brings true End-to-End Encryption (E2EE) to Discord using the OpenPGP standard. Your messages are encrypted on your device and can only be decrypted by the intended recipients. Not even Discord can read them.
 
-## Guiding Principles
+---
 
-This project is governed by a strict, security-first constitution. Key principles include:
+## ✨ Features
 
-- **Security-First**: No unencrypted message content ever touches the Discord API. Private keys are stored locally and are themselves encrypted.
-- **Architecture**: A unified architecture based on Lune and Shelter.ui (SolidJS) to ensure maintainability.
-- **Minimal Backend**: The backend is used exclusively for public key exchange and identity verification.
-- **Lifecycle Safety**: Rigorous cleanup of all patches and observers to prevent memory leaks.
-- **User Trust**: A clear and unambiguous UI to prevent accidental leakage of sensitive information.
+- [x] **Encrypt Private Chat**: Secure 1-on-1 conversations with full PGP encryption.
+- [x] **Encrypt Multi-Recipient**: Works seamlessly in Group DMs and Server Channels.
+- [x] **Automated Key Discovery**: Automatically finds public keys based on Discord IDs using our keyserver.
+- [x] **Ping Working**: Mentions and notifications work as expected.
+- [x] **Fully Functional Chat**: Code blocks, markdown, and standard Discord formatting are preserved inside encrypted messages.
+- [ ] **Image/File Upload**: *Coming Soon!* (Currently placeholder)
 
-For the full list of rules, see the [project constitution](./specs/002-pgp-encryption-plugin/constitution.md).
+---
 
-## Installation
+## 🛠️ Requirements
 
-You can install PGPCord directly into your Shelter/Vencord client using the repository URL.
+- **Shelter**: Included with [Legcord](https://legcord.app/) or injectable into most Discord clients (Vencord, etc.).
 
-1.  Open **User Settings** in your client (e.g., Legcord).
-2.  Navigate to **Shelter** > **Settings**.
-3.  In the **Plugins** section, find the option to **Add Plugin** (or "Add by URL").
-4.  Paste the following GitHub URL:
+## 📦 Installation
+
+### Option 1: Shelter Plugin Browser
+1.  Open **User Settings** -> **Shelter** -> **Plugins**.
+2.  Search for `PGPCord` (if available in the official list).
+3.  Click **Install**.
+
+### Option 2: Manual Install
+1.  Open **User Settings** -> **Shelter** -> **Plugins**.
+2.  Click **Add Plugin** (or "Add by URL").
+3.  Paste the following URL:
     ```
-    https://zerostats.github.io/pgpcord/pgpcord/ 
+    https://zerostats.github.io/pgpcord/pgpcord/
     ```
-5.  Click **Add Plugin**.
+4.  Click **Add Plugin**.
 
-## Usage
+---
 
-1.  After installation, go to **Settings > Plugins** and find **PGPCord**.
-2.  Generate a new PGP key pair and set a strong passphrase. This passphrase encrypts your private key on your device. **If you forget it, your keys are unrecoverable.**
-3.  Once keys are generated, your public key is automatically published.
-4.  In any chat, you will see a **lock icon** in the chat bar. Click it to toggle **Secure Mode**.
-5.  When the lock is closed (green), your messages will be encrypted. When it is open, messages will be sent as normal.
-6.  Incoming encrypted messages will be automatically decrypted and displayed in a distinct frame.
+## 🚀 Usage
 
-## Development
+### 1. Setup Your Keys
+Go to **Settings > PGPCord**.
+Generate a new key pair with a **strong passphrase**.
+*Your private key is encrypted with this passphrase. If you lose it, your messages are lost forever.*
+
+![Settings Placeholder](https://via.placeholder.com/800x400?text=Settings+Page+Screenshot)
+
+### 2. Publish Your Identity
+Click the **Publish** button in settings.
+You will be asked to link your current Discord account to verify your identity. This allows others to find your public key automatically.
+
+### 3. Start Chatting!
+Head to any chat. You will see a **Lock Icon** 🔓 in the chat bar.
+Click it to toggle **Secure Mode** 🔒.
+When the lock is green, everything you type is encrypted.
+
+![Chat Placeholder](https://via.placeholder.com/800x200?text=Secure+Chat+Bar+Screenshot)
+
+---
+
+## 💻 Development
 
 ### Prerequisites
-
 -   **Git**
--   **Node.js** and a package manager (`npm`, `pnpm`, etc.)
--   **Lune**: The build tool for Shelter plugins. Follow the installation instructions in the `spikehd/shelter-plugins` repository.
--   A Vencord/Shelter Discord Client for testing.
+-   **Node.js**
+-   **Lune**: `npm install -g @uwu/lune`
 
 ### Setup
-
-1.  **Clone & Install**:
-    ```bash
-    # Clone the repository
-    git clone https://github.com/Zerostats/pgpcord.git
-    cd pgpcord
-
-    # Install dependencies
-    npm install
-    ```
-
-2.  **Supabase Setup**:
-    -   Create a new project at [supabase.com](https://supabase.com).
-    -   In the SQL Editor, run the schema from `specs/002-pgp-encryption-plugin/contracts/supabase.md` to create the `user_keys` table and its security policies.
-    -   Go to **Authentication > Providers** and enable the **Discord** provider. You will need a Client ID and Secret from a Discord OAuth2 application.
-    -   Go to **Project Settings > API** and find your Project URL and `anon` public key.
-
-3.  **Configure Environment**:
-    -   Open `plugins/pgpcord/lib/api.ts`.
-    -   Replace the placeholder `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY` values with your actual Supabase credentials.
+```bash
+git clone https://github.com/Zerostats/pgpcord.git
+cd pgpcord
+npm install
+```
 
 ### Building
-
-To build the plugin, run the following command from the project root:
-
 ```bash
 npx lune build pgpcord
 ```
-*(Note: This assumes `lune` is available in your path or you are using `npx` with it installed locally. You may need to adjust based on your Lune setup.)*
 
-This will create a `dist` folder inside `plugins/pgpcord` containing the bundled plugin.
+---
 
-## Contributing
+## 📄 License
 
-Guidelines for contributing to the project.
-
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License.
