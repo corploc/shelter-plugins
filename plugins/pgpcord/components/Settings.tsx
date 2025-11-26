@@ -8,9 +8,7 @@ import classes from "./settings.scss";
 // Assuming Shelter's data API is available globally via `shelter`
 declare const shelter: any;
 
-// Rate limiting - module level to persist across re-renders
-let lastCheckTime = 0;
-const CHECK_COOLDOWN_MS = 2000; // 2 seconds between checks
+
 
 const defaultSettings: PluginSettings = {
   cacheDuration: 'session',
@@ -90,7 +88,8 @@ export default () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to cache key');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.statusMessage || errorData.message || response.statusText || 'Failed to cache key');
       }
 
       const data = await response.json();
@@ -111,7 +110,7 @@ export default () => {
       }
     } catch (err) {
       console.error('PGPCord: Failed to publish key', err);
-      setError('Failed to publish key to server. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to publish key to server. Please try again.');
     }
   };
 
@@ -250,13 +249,7 @@ export default () => {
   };
 
   const handleCheckStatus = async () => {
-    // Rate limiting guard
-    const now = Date.now();
-    if (now - lastCheckTime < CHECK_COOLDOWN_MS) {
-      console.log(`PGPCord: Please wait ${Math.ceil((CHECK_COOLDOWN_MS - (now - lastCheckTime)) / 1000)}s before checking again`);
-      return;
-    }
-    lastCheckTime = now;
+
 
     setKeyStatus("checking");
     try {

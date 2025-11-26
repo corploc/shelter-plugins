@@ -49,7 +49,7 @@ export async function getPublicKeys(userIds: string[]): Promise<PublicKeyRecord[
   query.append('select', '*');
 
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/user_keys?${query.toString()}`, {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/user_keys_verified_view?${query.toString()}`, {
       method: 'GET',
       headers: {
         'apikey': SUPABASE_ANON_KEY,
@@ -109,7 +109,7 @@ export async function checkCurrentUserKey(): Promise<PublicKeyRecord | null> {
   });
 
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/user_keys?${query.toString()}`, {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/user_keys_verified_view?${query.toString()}`, {
       method: 'GET',
       headers: {
         'apikey': SUPABASE_ANON_KEY,
