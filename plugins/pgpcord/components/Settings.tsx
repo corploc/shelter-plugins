@@ -1,8 +1,7 @@
 import { createSignal, Show, onMount } from "solid-js";
 import { WEB_BASE_URL } from "../lib/constants";
-import { generateKeyPair, saveKeyPairToLocalStorage, loadKeyPairFromLocalStorage, encryptPrivateKey, decryptPrivateKey, clearCachedPrivateKey } from "../lib/crypto";
+import { generateKeyPair, saveKeyPairToLocalStorage, loadKeyPairFromLocalStorage, encryptPrivateKey, decryptPrivateKey } from "../lib/crypto";
 import { UserKeyPair, PluginSettings, CacheDuration } from "../lib/types";
-import { resetMessageCache } from "../patches/Message";
 import { checkCurrentUserKey } from "../lib/api";
 import classes from "./settings.scss";
 
@@ -61,7 +60,6 @@ export default () => {
   const handleGenerateKeys = async () => {
     setIsGenerating(true);
     setError(null);
-    clearCachedPrivateKey();
     try {
       const newKeyPair = await generateKeyPair(passphrase());
       saveKeyPairToLocalStorage(newKeyPair);
@@ -72,7 +70,6 @@ export default () => {
     } finally {
       setIsGenerating(false);
       setPassphrase("");
-      resetMessageCache();
     }
   };
 
@@ -145,7 +142,6 @@ export default () => {
         window.open(`${WEB_BASE_URL}/delete?validate=true`, "_blank");
 
         console.log("PGPCord: Local data cleared, redirecting to server deletion...");
-        resetMessageCache();
       } catch (err) {
         console.error("PGPCord: Error during key deletion", err);
         setError("Failed to clear local data. Please try again.");
@@ -220,10 +216,8 @@ export default () => {
             }
 
             const newKeys = { ...parsed, privateKey };
-            clearCachedPrivateKey();
             saveKeyPairToLocalStorage(newKeys);
             setKeyPair(newKeys);
-            resetMessageCache();
             setError(null);
             // alert("Keys imported successfully!"); // Avoid alert if possible
           } else {
@@ -455,7 +449,7 @@ export default () => {
             <div class={classes.section}>
               <h3 class={classes.subHeader}>Security Settings</h3>
 
-              <div class={classes.inputGroup}>
+              <div class={classes.inputGroup} style={{ "margin-top": "16px" }}>
                 <label class={classes.label} for="cache-duration">Passphrase Cache Duration</label>
                 <select
                   id="cache-duration"
