@@ -429,3 +429,7 @@ GitHub.sublime-settings
 \n# JetBrains IDEs\n.idea/
 vencord/*
 nodes_modules/*
+.specify/*
+.gemini/*
+GEMINI.md
+specs/**
