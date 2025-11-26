@@ -31,9 +31,10 @@ jobs:
                   if [ -d "$dir" ] && [ -f "$dir/plugin.json" ]; then
                     name=$(basename "$dir")
                     mkdir -p "dist/$name"
+                    mkdir -p "dist/plugins/$name"
                     cp "$dir/plugin.json" "dist/$name/plugin.json"
                     # copy Readme aswell
-                    cp "$dir/README.md" "dist/$name/README.md"
+                    cp "$dir/README.md" "dist/plugins/$name/README.md"
                   fi
                 done
 
