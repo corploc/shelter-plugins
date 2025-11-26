@@ -37,7 +37,7 @@ jobs:
                     cp "$dir/README.md" "dist/plugins/$name/README.md"
                   fi
                 done
-
+                cp -r img dist/img
                 cp README.md dist/README.md
                 printf -- "---\npermalink: /404.html\n---\n" > dist/404.md
                 printf -- "> **Note:** You accessed a link that returned a 404, probably by clicking one of the plugin links. You're supposed to copy the link address and add it into shelter.\n\n" >> dist/404.md
