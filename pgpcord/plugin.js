@@ -17763,16 +17763,10 @@ async function generateKeyPair(passphrase) {
 async function decryptAndCachePrivateKey(passphrase) {
 	const keyPair = loadKeyPairFromLocalStorage();
 	if (!keyPair) throw new Error("No key pair found in local storage.");
-	console.log("PGPCord: Loading private key from storage. Length:", keyPair.privateKey.length);
-	console.log("PGPCord: Private key start:", keyPair.privateKey.substring(0, 50));
 	let cleanedKey = keyPair.privateKey.trim();
-	if (cleanedKey.includes("\\n")) {
-		console.log("PGPCord: Detected literal \\n in private key, fixing...");
-		cleanedKey = cleanedKey.replace(/\\n/g, "\n");
-	}
+	if (cleanedKey.includes("\\n")) cleanedKey = cleanedKey.replace(/\\n/g, "\n");
 	const privateKey$1 = await Ya({ armoredKey: cleanedKey });
 	if (privateKey$1.isDecrypted()) {
-		console.log("PGPCord: Private key is already decrypted, caching directly.");
 		setPrivateKey(privateKey$1);
 		cacheTimestamp = Date.now();
 		return privateKey$1;
@@ -17821,7 +17815,6 @@ async function encryptMessage(message, recipientIds) {
 				cleanedKey = cleanedKey.replace("-----BEGIN PGP PUBLIC KEY BLOCK-----", "-----BEGIN PGP PUBLIC KEY BLOCK-----\n");
 				cleanedKey = cleanedKey.replace("-----END PGP PUBLIC KEY BLOCK-----", "\n-----END PGP PUBLIC KEY BLOCK-----");
 			}
-			console.log(`PGPCord: Parsing key for ${r$1.discord_id}`, cleanedKey);
 			return await qa({ armoredKey: cleanedKey });
 		} catch (e$1) {
 			console.error(`PGPCord: Failed to parse key for user ${r$1.discord_id}`, e$1);
@@ -17848,8 +17841,6 @@ var WrongKeyError = class extends Error {
 };
 async function decryptMessage(encryptedMessage) {
 	let cleanedMessage = encryptedMessage.trim();
-	console.log("PGPCord: Decrypting message (raw length):", encryptedMessage.length);
-	console.log("PGPCord: Decrypting message (first 50 chars):", encryptedMessage.substring(0, 50));
 	if (cleanedMessage.includes("\\n")) cleanedMessage = cleanedMessage.replace(/\\n/g, "\n");
 	if (!cleanedMessage.includes("\n") && cleanedMessage.includes("-----BEGIN PGP MESSAGE-----")) {
 		cleanedMessage = cleanedMessage.replace("-----BEGIN PGP MESSAGE-----", "-----BEGIN PGP MESSAGE-----\n");
@@ -17861,10 +17852,7 @@ async function decryptMessage(encryptedMessage) {
 	const encryptionKeyIds = message.getEncryptionKeyIDs();
 	const privateKeyFromStorage = await Ya({ armoredKey: keyPair.privateKey });
 	const allKeyIds = privateKeyFromStorage.getKeyIDs().map((k$1) => k$1.toHex().toLowerCase());
-	console.log("PGPCord: My key IDs (including subkeys):", allKeyIds);
-	console.log("PGPCord: Message encrypted for key IDs:", encryptionKeyIds.map((k$1) => k$1.toHex()));
 	const isForMe = encryptionKeyIds.length === 0 || encryptionKeyIds.some((msgKeyId) => allKeyIds.includes(msgKeyId.toHex().toLowerCase()));
-	console.log("PGPCord: Is message for me?", isForMe);
 	if (!isForMe) {
 		console.warn("PGPCord: Message is not encrypted for any of my keys");
 		console.warn("PGPCord: My Key IDs:", allKeyIds);
@@ -18056,20 +18044,20 @@ shelter.plugin.scoped.ui.injectCss(`.qtaweq_container {
 }
 `);
 var settings_default = {
-	"codeBlock": "qtaweq_codeBlock",
-	"header": "qtaweq_header",
 	"muted": "qtaweq_muted",
-	"error": "qtaweq_error",
 	"text": "qtaweq_text",
-	"input": "qtaweq_input",
 	"button": "qtaweq_button",
 	"section": "qtaweq_section",
-	"inputGroup": "qtaweq_inputGroup",
-	"container": "qtaweq_container",
 	"subHeader": "qtaweq_subHeader",
+	"error": "qtaweq_error",
+	"header": "qtaweq_header",
+	"container": "qtaweq_container",
+	"codeBlock": "qtaweq_codeBlock",
+	"inputGroup": "qtaweq_inputGroup",
+	"input": "qtaweq_input",
 	"label": "qtaweq_label",
-	"select": "qtaweq_select",
 	"secondaryButton": "qtaweq_secondaryButton",
+	"select": "qtaweq_select",
 	"copyButton": "qtaweq_copyButton"
 };
 
@@ -18170,7 +18158,6 @@ var Settings_default = () => {
 			setPassphrase("");
 			setKeyStatus("idle");
 			window.open(`${WEB_BASE_URL}/delete?validate=true`, "_blank");
-			console.log("PGPCord: Local data cleared, redirecting to server deletion...");
 		} catch (err) {
 			console.error("PGPCord: Error during key deletion", err);
 			setError("Failed to clear local data. Please try again.");
@@ -18252,7 +18239,6 @@ var Settings_default = () => {
 		navigator.clipboard.writeText(text).then(() => {
 			setCopyFeedback(true);
 			setTimeout(() => setCopyFeedback(false), 2e3);
-			console.log("PGPCord: Public key copied to clipboard.");
 		}, (err) => {
 			console.error("PGPCord: Failed to copy public key", err);
 		});
@@ -18849,7 +18835,6 @@ const applyMessageVisibility = async (messageId, channelId, encryptedContent) =>
 	}
 	const secure = isSecureMode();
 	const privateKey$1 = getCachedPrivateKey();
-	console.log(`PGPCord: applyMessageVisibility ${messageId} secure=${secure} hasKey=${!!privateKey$1}`);
 	const sanitizedContent = encryptedContent.replace(/(-----BEGIN PGP MESSAGE-----)([^\n])/, "$1\n\n$2").replace(/(-----BEGIN PGP MESSAGE-----\n)(?!Version: )([^\n])/, "$1\n$2");
 	if (cached) {
 		if (privateKey$1 && cached.state === "passphrase_required") {} else if (cached.state === "decrypted" && cached.decrypted) {
@@ -18891,11 +18876,9 @@ else if (privateKey$1) {
 	}
 };
 const reprocessMessages = (targetChannelId) => {
-	console.log("PGPCord: Reprocessing messages...", targetChannelId ? `for channel ${targetChannelId}` : "all channels");
 	if (targetChannelId) {
 		const channelStore = channelMessageStore.get(targetChannelId);
 		if (channelStore) channelStore.forEach((data, messageId) => {
-			console.log(`PGPCord: Reprocessing message ${messageId} state=${data.state}`);
 			if (data.state === "passphrase_required" || data.state === "encrypted") {
 				data.state = "encrypted";
 				delete data.decrypted;
@@ -19102,7 +19085,6 @@ const patchMessageContent = () => {
 				const channelId = payload.channelId;
 				const channelStore = channelMessageStore.get(channelId);
 				if (channelStore && channelStore.has(messageId)) {
-					console.log("PGPCord: Blocked edit attempt on encrypted message", messageId);
 					if (shelter.ui?.showToast) shelter.ui.showToast({
 						title: "Cannot Edit Encrypted Message",
 						content: "Encrypted messages cannot be edited for security reasons. Please delete and send a new message instead.",
@@ -19302,20 +19284,12 @@ else allFound = keys.length === otherRecipients.length;
 	};
 	const isDisabled = () => !currentUserHasKey();
 	const handleClick = async () => {
-		console.log("PGPCord: Lock button clicked", {
-			disabled: isDisabled(),
-			checking: checking(),
-			checkingUser: checkingCurrentUser(),
-			hasKeys: hasKeys(),
-			currentMode: isSecureMode$1()
-		});
 		if (isDisabled() || checking() || checkingCurrentUser()) return;
 		const channelId = currentChannelId();
 		if (!channelId) return;
 		if (!hasCheckedKeys()) await checkKeys(channelId, true);
 		if (hasKeys()) {
 			const newMode = !isSecureMode$1();
-			console.log("PGPCord: Toggling secure mode to", newMode);
 			setSecureMode(newMode);
 			if (!shelter.plugin.store.pgpcord_lock_state) shelter.plugin.store.pgpcord_lock_state = {};
 			shelter.plugin.store.pgpcord_lock_state[channelId] = newMode;
@@ -19453,18 +19427,7 @@ const patchChatBar = () => {
 		(0, import_web$1.render)(() => (0, import_web.createComponent)(SecureChatBar_default, {}), container);
 	});
 	if (shelter.http?.intercept) unintercept = shelter.http.intercept("POST", /\/channels\/\d+\/messages/, async (req, send) => {
-		console.log("PGPCord: Interceptor triggered!", {
-			isSecureMode: isSecureMode(),
-			hasBody: !!req.body,
-			bodyType: req.body?.constructor?.name,
-			isFormData: req.body instanceof FormData
-		});
-		if (!isSecureMode()) {
-			console.log("PGPCord: Not in secure mode, skipping");
-			return send(req);
-		}
-		console.log("PGPCord: Request body keys:", Object.keys(req.body || {}));
-		console.log("PGPCord: Request body:", req.body);
+		if (!isSecureMode()) return send(req);
 		try {
 			const match = req.url.match(/\/channels\/(\d+)\/messages/);
 			const channelId = match ? match[1] : null;
