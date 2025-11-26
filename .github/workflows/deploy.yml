@@ -32,6 +32,8 @@ jobs:
                     name=$(basename "$dir")
                     mkdir -p "dist/$name"
                     cp "$dir/plugin.json" "dist/$name/plugin.json"
+                    # copy Readme aswell
+                    cp "$dir/README.md" "dist/$name/README.md"
                   fi
                 done
 
