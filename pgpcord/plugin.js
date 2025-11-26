@@ -40,7 +40,7 @@ var require_solid_js = __commonJS({ "solid-js"(exports, module) {
 
 //#endregion
 //#region plugins/pgpcord/lib/constants.ts
-const IS_DEV = true;
+const IS_DEV = false;
 const WEB_BASE_URL = IS_DEV ? "http://localhost:3000" : "https://pgpcord.corploc.net";
 
 //#endregion
@@ -18056,21 +18056,21 @@ shelter.plugin.scoped.ui.injectCss(`.qtaweq_container {
 }
 `);
 var settings_default = {
-	"inputGroup": "qtaweq_inputGroup",
-	"header": "qtaweq_header",
-	"label": "qtaweq_label",
-	"secondaryButton": "qtaweq_secondaryButton",
-	"input": "qtaweq_input",
-	"section": "qtaweq_section",
-	"subHeader": "qtaweq_subHeader",
-	"container": "qtaweq_container",
-	"text": "qtaweq_text",
 	"codeBlock": "qtaweq_codeBlock",
+	"header": "qtaweq_header",
 	"muted": "qtaweq_muted",
-	"copyButton": "qtaweq_copyButton",
 	"error": "qtaweq_error",
+	"text": "qtaweq_text",
+	"input": "qtaweq_input",
 	"button": "qtaweq_button",
-	"select": "qtaweq_select"
+	"section": "qtaweq_section",
+	"inputGroup": "qtaweq_inputGroup",
+	"container": "qtaweq_container",
+	"subHeader": "qtaweq_subHeader",
+	"label": "qtaweq_label",
+	"select": "qtaweq_select",
+	"secondaryButton": "qtaweq_secondaryButton",
+	"copyButton": "qtaweq_copyButton"
 };
 
 //#endregion
