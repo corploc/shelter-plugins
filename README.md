@@ -42,7 +42,7 @@ preserved inside encrypted messages.
 2.  Click **Add Plugin** (or "Add by URL").
 3.  Paste the following URL:
     ```
-    https://zerostats.github.io/pgpcord/pgpcord/
+    https://corploc.github.io/shelter-plugins/pgpcord/
     ```
 4.  Click **Add Plugin**.
 
@@ -95,8 +95,8 @@ When reloading the app you will need to reenter your passphrase.
 
 ### Setup
 ```bash
-git clone https://github.com/Zerostats/pgpcord.git
-cd pgpcord
+git clone https://github.com/corploc/shelter-plugins.git
+cd shelter-plugins/
 npm install
 ```
 

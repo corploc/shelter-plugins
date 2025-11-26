@@ -35,6 +35,11 @@ const updateMessageContent = (messageId: string, channelId: string, newContent: 
         return;
     }
 
+    // Prevent redundant updates to avoid infinite loops and unnecessary re-renders
+    if (existingMessage.content === newContent) {
+        return;
+    }
+
     shelter.flux.dispatcher.dispatch({
         type: "MESSAGE_UPDATE",
         message: {
@@ -410,6 +415,19 @@ export const reprocessMessages = (targetChannelId?: string) => {
     }
 };
 
+export const resetMessageCache = () => {
+    console.log("PGPCord: Resetting all message caches...");
+    channelMessageStore.forEach((channelStore, channelId) => {
+        channelStore.forEach((data, messageId) => {
+            // Reset EVERYTHING
+            data.state = "encrypted";
+            delete data.decrypted;
+            // Re-apply visibility (will likely show placeholder or try to decrypt with new key)
+            applyMessageVisibility(messageId, channelId, data.encrypted);
+        });
+    });
+};
+
 const handleEncryptedText = (element: Element, text: string) => {
     // Avoid double injection if we are already handling this element
     if (element.getAttribute("data-pgpcord-injected") === "true") return;
@@ -435,6 +453,11 @@ const handleEncryptedText = (element: Element, text: string) => {
         // If we just dispatched an update, this element might be removed/replaced.
         // So we shouldn't do anything else here if we are hiding it.
         if (!isSecureMode()) return;
+    } else {
+        // If already cached, we MUST ensure visibility is applied.
+        // This handles the case where the message was re-mounted (e.g. scroll) and reverted to raw text.
+        // We rely on updateMessageContent's redundancy check to prevent loops.
+        applyMessageVisibility(messageId, channelId, text);
     }
 
     // If we are here, it means we are in Secure Mode and the content is the PGP block.
