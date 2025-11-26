@@ -296,7 +296,6 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
 
     const secure = isSecureMode();
     const privateKey = getCachedPrivateKey(); // Check if unlocked
-    console.log(`PGPCord: applyMessageVisibility ${messageId} secure=${secure} hasKey=${!!privateKey}`);
 
     // Sanitize PGP block: ensure blank line after header
     const sanitizedContent = encryptedContent.replace(
@@ -383,13 +382,11 @@ const applyMessageVisibility = async (messageId: string, channelId: string, encr
 
 
 export const reprocessMessages = (targetChannelId?: string) => {
-    console.log("PGPCord: Reprocessing messages...", targetChannelId ? `for channel ${targetChannelId}` : "all channels");
 
     if (targetChannelId) {
         const channelStore = channelMessageStore.get(targetChannelId);
         if (channelStore) {
             channelStore.forEach((data, messageId) => {
-                console.log(`PGPCord: Reprocessing message ${messageId} state=${data.state}`);
                 // Reset state to encrypted to allow re-processing
                 // This ensures that if we just unlocked, we try to decrypt everything that was waiting
                 if (data.state === "passphrase_required" || data.state === "encrypted") {
@@ -416,7 +413,6 @@ export const reprocessMessages = (targetChannelId?: string) => {
 };
 
 export const resetMessageCache = () => {
-    console.log("PGPCord: Resetting all message caches...");
     channelMessageStore.forEach((channelStore, channelId) => {
         channelStore.forEach((data, messageId) => {
             // Reset EVERYTHING
@@ -730,8 +726,6 @@ export const patchMessageContent = () => {
                 const channelStore = channelMessageStore.get(channelId);
                 if (channelStore && channelStore.has(messageId)) {
                     // Block the edit and show a notification
-                    console.log("PGPCord: Blocked edit attempt on encrypted message", messageId);
-
                     // Show a toast notification if available
                     if (shelter.ui?.showToast) {
                         shelter.ui.showToast({

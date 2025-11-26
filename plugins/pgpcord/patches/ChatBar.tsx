@@ -67,21 +67,10 @@ export const patchChatBar = () => {
     // We intercept POST requests to /channels/:id/messages
     if (shelter.http?.intercept) {
         unintercept = shelter.http.intercept("POST", /\/channels\/\d+\/messages/, async (req: any, send: any) => {
-            console.log("PGPCord: Interceptor triggered!", {
-                isSecureMode: isSecureMode(),
-                hasBody: !!req.body,
-                bodyType: req.body?.constructor?.name,
-                isFormData: req.body instanceof FormData
-            });
 
             if (!isSecureMode()) {
-                console.log("PGPCord: Not in secure mode, skipping");
                 return send(req);
             }
-
-            // Debug: Log request body structure
-            console.log("PGPCord: Request body keys:", Object.keys(req.body || {}));
-            console.log("PGPCord: Request body:", req.body);
 
             try {
                 const match = req.url.match(/\/channels\/(\d+)\/messages/);

@@ -140,7 +140,6 @@ export default () => {
         // This will handle OAuth and actual server-side deletion
         window.open(`${WEB_BASE_URL}/delete?validate=true`, "_blank");
 
-        console.log("PGPCord: Local data cleared, redirecting to server deletion...");
       } catch (err) {
         console.error("PGPCord: Error during key deletion", err);
         setError("Failed to clear local data. Please try again.");
@@ -237,7 +236,6 @@ export default () => {
     navigator.clipboard.writeText(text).then(() => {
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 2000);
-      console.log("PGPCord: Public key copied to clipboard.");
     }, (err) => {
       console.error("PGPCord: Failed to copy public key", err);
     });

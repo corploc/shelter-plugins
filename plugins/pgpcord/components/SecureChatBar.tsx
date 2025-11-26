@@ -273,14 +273,6 @@ export default () => {
   const isDisabled = () => !currentUserHasKey();
 
   const handleClick = async () => {
-    console.log("PGPCord: Lock button clicked", {
-      disabled: isDisabled(),
-      checking: checking(),
-      checkingUser: checkingCurrentUser(),
-      hasKeys: hasKeys(),
-      currentMode: isSecureMode()
-    });
-
     if (isDisabled() || checking() || checkingCurrentUser()) return;
 
     const channelId = currentChannelId();
@@ -294,7 +286,6 @@ export default () => {
     // If keys are found, toggle secure mode
     if (hasKeys()) {
       const newMode = !isSecureMode();
-      console.log("PGPCord: Toggling secure mode to", newMode);
       setGlobalSecureMode(newMode);
 
       if (!shelter.plugin.store.pgpcord_lock_state) {
