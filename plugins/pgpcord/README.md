@@ -62,27 +62,27 @@ You will be asked to link your current Discord account to verify your identity. 
 
 > You can delete your identity by clicking the **Delete** button in settings.
 
-![Settings Placeholder](img/settings.png)
+![Settings Placeholder](../../img/settings.png)
 
 ### 4. Start Chatting!
 
 Enable disable encryption per chat by pressing the **Lock Icon** in the chat bar.
 
-![Unlock Icon](img/unlock.png)
-![Lock Icon](img/private.png)
+![Unlock Icon](../../img/unlock.png)
+![Lock Icon](../../img/private.png)
 
 When the lock is green, everything you type is encrypted.
 
 When reloading the app you will need to reenter your passphrase.
 
-![Prompt password](img/prompt.png)
+![Prompt password](../../img/prompt.png)
 
 #### 5. Group Chat
-![Private Chat](img/privatechat.png)
+![Private Chat](../../img/privatechat.png)
 
 #### 6. Plain Chat
 
-![Plain Chat](img/plainchat.png)
+![Plain Chat](../../img/plainchat.png)
 
 ---
 
