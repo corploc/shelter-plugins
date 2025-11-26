@@ -1,13 +1,15 @@
-# 🔒 PGPCord
+# 🔒 PGPCord - Shelter Plugin
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![SolidJS](https://img.shields.io/badge/SolidJS-2c4f7c?style=for-the-badge&logo=solid&logoColor=white)
 ![Shelter](https://img.shields.io/badge/Shelter-Plugin-blueviolet?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
+Inside this repository you can find all corploc plugins with PGPCord being the main one.
+
 > **You can talk with anybody that has pgpcord installed!**
 
-PGPCord brings true End-to-End Encryption (E2EE) to Discord using the OpenPGP standard. Your messages are encrypted on your device and can only be decrypted by the intended recipients. Not even Discord can read them.
+PGPCord brings blazing fast End-to-End Encryption (E2EE) to Discord using the OpenPGP standard. Your messages are encrypted on your device and can only be decrypted by the intended recipients. Not even Discord can read them.
 
 ---
 
@@ -20,7 +22,7 @@ PGPCord brings true End-to-End Encryption (E2EE) to Discord using the OpenPGP st
 - [x] **Fully Functional Chat**: Code blocks, markdown, and standard Discord formatting are 
 preserved inside encrypted messages.
 - [x] **No log policy**: The Keyserver does not store any keys nor any logs you can delete all your traces with the delete button in settings.
-- [ ] **Image/File Upload**: *Coming Soon!* (Currently placeholder)
+- [ ] **Image/File Upload**: *Coming Soon!* 
 
 ---
 

@@ -428,7 +428,7 @@ GitHub.sublime-settings
 \n# Node.js/TypeScript dependencies\nnode_modules/
 \n# JetBrains IDEs\n.idea/
 vencord/*
-nodes_modules/*
+node_modules/*
 .specify/*
 .gemini/*
 GEMINI.md
