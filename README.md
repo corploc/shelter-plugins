@@ -12,6 +12,8 @@ This repository contains plugins for [Shelter](https://github.com/uwu/shelter).
 ### [PGPCord](./plugins/pgpcord)
 End-to-End Encryption (E2EE) for Discord using the OpenPGP standard.
 
+
+
 ---
 
 ## 💻 Development
