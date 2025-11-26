@@ -43,13 +43,10 @@ export async function decryptAndCachePrivateKey(passphrase: string): Promise<ope
     throw new Error("No key pair found in local storage.");
   }
 
-  console.log("PGPCord: Loading private key from storage. Length:", keyPair.privateKey.length);
-  console.log("PGPCord: Private key start:", keyPair.privateKey.substring(0, 50));
 
   // Clean up key if needed (similar to message cleaning)
   let cleanedKey = keyPair.privateKey.trim();
   if (cleanedKey.includes('\\n')) {
-    console.log("PGPCord: Detected literal \\n in private key, fixing...");
     cleanedKey = cleanedKey.replace(/\\n/g, '\n');
   }
 
@@ -57,7 +54,6 @@ export async function decryptAndCachePrivateKey(passphrase: string): Promise<ope
 
   // Check if the key is already decrypted
   if (privateKey.isDecrypted()) {
-    console.log("PGPCord: Private key is already decrypted, caching directly.");
     setPrivateKey(privateKey);
     cacheTimestamp = Date.now();
     return privateKey;
@@ -151,7 +147,6 @@ export async function encryptMessage(message: string, recipientIds: string[]): P
           // This is a very rough heuristic for squashed keys, might need more robust parsing if common
         }
 
-        console.log(`PGPCord: Parsing key for ${r.discord_id}`, cleanedKey); // Debug log
         return await openpgp.readKey({ armoredKey: cleanedKey });
       } catch (e) {
         console.error(`PGPCord: Failed to parse key for user ${r.discord_id}`, e);
@@ -194,8 +189,6 @@ export class WrongKeyError extends Error {
 export async function decryptMessage(encryptedMessage: string): Promise<string> {
   // Clean up the message string
   let cleanedMessage = encryptedMessage.trim();
-  console.log("PGPCord: Decrypting message (raw length):", encryptedMessage.length);
-  console.log("PGPCord: Decrypting message (first 50 chars):", encryptedMessage.substring(0, 50));
 
   if (cleanedMessage.includes('\\n')) {
     cleanedMessage = cleanedMessage.replace(/\\n/g, '\n');
@@ -219,15 +212,12 @@ export async function decryptMessage(encryptedMessage: string): Promise<string> 
   const privateKeyFromStorage = await openpgp.readPrivateKey({ armoredKey: keyPair.privateKey });
   const allKeyIds = privateKeyFromStorage.getKeyIDs().map((k: any) => k.toHex().toLowerCase());
 
-  console.log("PGPCord: My key IDs (including subkeys):", allKeyIds);
-  console.log("PGPCord: Message encrypted for key IDs:", encryptionKeyIds.map((k: any) => k.toHex()));
 
   // Check if any of the message's encryption keys match any of our keys
   // If the message is anonymous (no key IDs), we should try to decrypt it anyway.
   const isForMe = encryptionKeyIds.length === 0 || encryptionKeyIds.some((msgKeyId: any) =>
     allKeyIds.includes(msgKeyId.toHex().toLowerCase())
   );
-  console.log("PGPCord: Is message for me?", isForMe);
 
   if (!isForMe) {
     console.warn("PGPCord: Message is not encrypted for any of my keys");
