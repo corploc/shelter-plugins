@@ -1,5 +1,5 @@
 {
-	"name": "PGGCord",
+	"name": "PGPCord",
 	"author": "Zerostats",
-	"description": "A plugin for encrypting and decrypting messages using PGP in Discord."
+	"description": "🔒 A plugin that transforms your private chats and group chats into encrypted channels using PGP.\n The keys are synced with our keyserver making it easy to encrypt your messages."
 }
