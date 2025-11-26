@@ -40,7 +40,7 @@ var require_solid_js = __commonJS({ "solid-js"(exports, module) {
 
 //#endregion
 //#region plugins/pgpcord/lib/constants.ts
-const IS_DEV = false;
+const IS_DEV = true;
 const WEB_BASE_URL = IS_DEV ? "http://localhost:3000" : "https://pgpcord.corploc.net";
 
 //#endregion
@@ -17661,7 +17661,7 @@ async function getPublicKeys(userIds) {
 else query.append("discord_id", `in.(${missingIds.join(",")})`);
 	query.append("select", "*");
 	try {
-		const response = await fetch(`${SUPABASE_URL}/rest/v1/user_keys?${query.toString()}`, {
+		const response = await fetch(`${SUPABASE_URL}/rest/v1/user_keys_verified_view?${query.toString()}`, {
 			method: "GET",
 			headers: {
 				"apikey": SUPABASE_ANON_KEY,
@@ -17703,7 +17703,7 @@ async function checkCurrentUserKey() {
 		discord_id: `eq.${userId}`
 	});
 	try {
-		const response = await fetch(`${SUPABASE_URL}/rest/v1/user_keys?${query.toString()}`, {
+		const response = await fetch(`${SUPABASE_URL}/rest/v1/user_keys_verified_view?${query.toString()}`, {
 			method: "GET",
 			headers: {
 				"apikey": SUPABASE_ANON_KEY,
@@ -18057,20 +18057,20 @@ shelter.plugin.scoped.ui.injectCss(`.qtaweq_container {
 `);
 var settings_default = {
 	"inputGroup": "qtaweq_inputGroup",
-	"section": "qtaweq_section",
-	"select": "qtaweq_select",
-	"copyButton": "qtaweq_copyButton",
-	"label": "qtaweq_label",
-	"muted": "qtaweq_muted",
-	"container": "qtaweq_container",
 	"header": "qtaweq_header",
-	"codeBlock": "qtaweq_codeBlock",
-	"text": "qtaweq_text",
+	"label": "qtaweq_label",
+	"secondaryButton": "qtaweq_secondaryButton",
+	"input": "qtaweq_input",
+	"section": "qtaweq_section",
 	"subHeader": "qtaweq_subHeader",
+	"container": "qtaweq_container",
+	"text": "qtaweq_text",
+	"codeBlock": "qtaweq_codeBlock",
+	"muted": "qtaweq_muted",
+	"copyButton": "qtaweq_copyButton",
 	"error": "qtaweq_error",
 	"button": "qtaweq_button",
-	"secondaryButton": "qtaweq_secondaryButton",
-	"input": "qtaweq_input"
+	"select": "qtaweq_select"
 };
 
 //#endregion
@@ -18087,8 +18087,6 @@ var import_web$31 = __toESM(require_web(), 1);
 var import_web$32 = __toESM(require_web(), 1);
 var import_solid_js$3 = __toESM(require_solid_js(), 1);
 const _tmpl$$2 = /*#__PURE__*/ (0, import_web$23.template)(`<div><div><h3></h3><p></p><input type="password" placeholder="Password"><div><button>Cancel</button><button></button></div></div></div>`, 15), _tmpl$2$2 = /*#__PURE__*/ (0, import_web$23.template)(`<div><strong>Error: </strong> <!#><!/></div>`, 6), _tmpl$3$2 = /*#__PURE__*/ (0, import_web$23.template)(`<div><p>Generating keys... This may take a moment. Your browser may become unresponsive.</p></div>`, 4), _tmpl$4$2 = /*#__PURE__*/ (0, import_web$23.template)(`<div><h2>PGPCord Settings</h2><!#><!/><!#><!/><!#><!/><!#><!/></div>`, 12), _tmpl$5$2 = /*#__PURE__*/ (0, import_web$23.template)(`<div><h3>Generate New Keys</h3><p>To get started, generate a new PGP key pair.<br><span>You will lose access to your encrypted messages if you forget your passphrase.</span></p><div><label for="passphrase">Passphrase</label><input id="passphrase" type="password" placeholder="Enter a strong passphrase"></div><button>Generate Keys</button><div><h4>Or Import Existing Keys</h4><label>Import Keys from JSON<input type="file" accept=".json"></label></div></div>`, 23), _tmpl$6$2 = /*#__PURE__*/ (0, import_web$23.template)(`<button></button>`, 2), _tmpl$7$1 = /*#__PURE__*/ (0, import_web$23.template)(`<pre><code></code></pre>`, 4), _tmpl$8 = /*#__PURE__*/ (0, import_web$23.template)(`<span></span>`, 2), _tmpl$9 = /*#__PURE__*/ (0, import_web$23.template)(`<div><label for="cache-time">Cache duration (minutes)</label><input id="cache-time" type="number" min="1"></div>`, 5), _tmpl$0 = /*#__PURE__*/ (0, import_web$23.template)(`<div><div><h3>Your PGP Keys</h3><div><div><label>Public Key</label><div><button></button><!#><!/></div></div><!#><!/></div><div><button>Publish Public Key</button><button>Export Keys Backup</button></div><div><h4>Account Status</h4><div><button></button><!#><!/></div><p>Check if your public key is correctly registered on the PGPCord server.</p></div><div><button>Delete Keys & Account</button></div><p>Publishing opens an external website. Exporting downloads a JSON file with your private key - keep it safe! Deleting will remove keys locally and open the deletion page.</p></div><div><h3>Security Settings</h3><div><label for="cache-duration">Passphrase Cache Duration</label><select id="cache-duration"><option value="session">Cache for session</option><option value="time">Cache for a set time</option><option value="none">Do not cache (most secure)</option></select></div><!#><!/><p>Determines how long your unlocked private key is kept in memory.</p></div></div>`, 64);
-let lastCheckTime = 0;
-const CHECK_COOLDOWN_MS = 2e3;
 const defaultSettings = {
 	cacheDuration: "session",
 	cacheTimeMinutes: 15,
@@ -18144,7 +18142,10 @@ var Settings_default = () => {
 					next: "/dashboard"
 				})
 			});
-			if (!response.ok) throw new Error("Failed to cache key");
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.statusMessage || errorData.message || response.statusText || "Failed to cache key");
+			}
 			const data = await response.json();
 			if (data.redirect_url) {
 				const redirectUrl = data.redirect_url.startsWith("http") ? data.redirect_url : `${WEB_BASE_URL}${data.redirect_url.startsWith("/") ? "" : "/"}${data.redirect_url}`;
@@ -18152,7 +18153,7 @@ var Settings_default = () => {
 			} else throw new Error("No redirect URL returned");
 		} catch (err) {
 			console.error("PGPCord: Failed to publish key", err);
-			setError("Failed to publish key to server. Please try again.");
+			setError(err instanceof Error ? err.message : "Failed to publish key to server. Please try again.");
 		}
 	};
 	const handleDeleteKeys = () => {
@@ -18260,12 +18261,6 @@ var Settings_default = () => {
 		return key.replace(/\s+/g, "").trim();
 	};
 	const handleCheckStatus = async () => {
-		const now = Date.now();
-		if (now - lastCheckTime < CHECK_COOLDOWN_MS) {
-			console.log(`PGPCord: Please wait ${Math.ceil((CHECK_COOLDOWN_MS - (now - lastCheckTime)) / 1e3)}s before checking again`);
-			return;
-		}
-		lastCheckTime = now;
 		setKeyStatus("checking");
 		try {
 			const serverKeyRecord = await checkCurrentUserKey();
