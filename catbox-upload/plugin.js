@@ -590,62 +590,62 @@ shelter.plugin.scoped.ui.injectCss(`.AGuvFG_uploadArea {
 }
 `);
 var modal_jsx_default = {
+	"historyFilename": "AGuvFG_historyFilename",
 	"activeTab": "AGuvFG_activeTab",
-	"historyContainer": "AGuvFG_historyContainer",
-	"badge": "AGuvFG_badge",
-	"tabButton": "AGuvFG_tabButton",
-	"active": "AGuvFG_active",
-	"buttonDisabled": "AGuvFG_buttonDisabled",
-	"dragOver": "AGuvFG_dragOver",
-	"sway": "AGuvFG_sway",
+	"previewItemInfo": "AGuvFG_previewItemInfo",
+	"historyPermanent": "AGuvFG_historyPermanent",
 	"historyInfo": "AGuvFG_historyInfo",
-	"historyHeader": "AGuvFG_historyHeader",
-	"emptyHistory": "AGuvFG_emptyHistory",
-	"historyList": "AGuvFG_historyList",
-	"historyItem": "AGuvFG_historyItem",
 	"copyButton": "AGuvFG_copyButton",
-	"choiceModal": "AGuvFG_choiceModal",
+	"previewArea": "AGuvFG_previewArea",
+	"historyMeta": "AGuvFG_historyMeta",
+	"uploadArea": "AGuvFG_uploadArea",
+	"progressBar": "AGuvFG_progressBar",
+	"footer": "AGuvFG_footer",
+	"tabButton": "AGuvFG_tabButton",
+	"headerTabs": "AGuvFG_headerTabs",
+	"progressFill": "AGuvFG_progressFill",
+	"badgeAuth": "AGuvFG_badgeAuth",
+	"emptyHistory": "AGuvFG_emptyHistory",
+	"choiceContent": "AGuvFG_choiceContent",
+	"badge": "AGuvFG_badge",
+	"choiceTitle": "AGuvFG_choiceTitle",
+	"sway": "AGuvFG_sway",
 	"uploadInfo": "AGuvFG_uploadInfo",
-	"headerContent": "AGuvFG_headerContent",
+	"historyItem": "AGuvFG_historyItem",
 	"historyPreview": "AGuvFG_historyPreview",
-	"uploadModal": "AGuvFG_uploadModal",
-	"historyActions": "AGuvFG_historyActions",
-	"choiceOptions": "AGuvFG_choiceOptions",
-	"previewVideo": "AGuvFG_previewVideo",
+	"badgeAnonymous": "AGuvFG_badgeAnonymous",
+	"durationSelector": "AGuvFG_durationSelector",
+	"previewImage": "AGuvFG_previewImage",
+	"dragOver": "AGuvFG_dragOver",
+	"durationOption": "AGuvFG_durationOption",
 	"choiceOption": "AGuvFG_choiceOption",
 	"optionBadge": "AGuvFG_optionBadge",
-	"durationOption": "AGuvFG_durationOption",
-	"optionIcon": "AGuvFG_optionIcon",
-	"choiceContent": "AGuvFG_choiceContent",
-	"previewItem": "AGuvFG_previewItem",
-	"historyPermanent": "AGuvFG_historyPermanent",
-	"previewArea": "AGuvFG_previewArea",
-	"footer": "AGuvFG_footer",
-	"previewItemInfo": "AGuvFG_previewItemInfo",
-	"removeButton": "AGuvFG_removeButton",
-	"badgeAuth": "AGuvFG_badgeAuth",
-	"choiceFooter": "AGuvFG_choiceFooter",
-	"previewImage": "AGuvFG_previewImage",
-	"replacedButton": "AGuvFG_replacedButton",
-	"historyFilename": "AGuvFG_historyFilename",
-	"choiceSubtitle": "AGuvFG_choiceSubtitle",
 	"optionInfo": "AGuvFG_optionInfo",
-	"choiceHint": "AGuvFG_choiceHint",
-	"historyExpiry": "AGuvFG_historyExpiry",
-	"progressFill": "AGuvFG_progressFill",
 	"durationOptions": "AGuvFG_durationOptions",
-	"deleteButton": "AGuvFG_deleteButton",
+	"historyExpiry": "AGuvFG_historyExpiry",
+	"historyActions": "AGuvFG_historyActions",
 	"shake": "AGuvFG_shake",
-	"durationSelector": "AGuvFG_durationSelector",
-	"choiceTitle": "AGuvFG_choiceTitle",
-	"previewIcon": "AGuvFG_previewIcon",
-	"historyMeta": "AGuvFG_historyMeta",
-	"badgeAnonymous": "AGuvFG_badgeAnonymous",
+	"choiceHint": "AGuvFG_choiceHint",
+	"choiceModal": "AGuvFG_choiceModal",
+	"previewItem": "AGuvFG_previewItem",
+	"active": "AGuvFG_active",
+	"removeButton": "AGuvFG_removeButton",
+	"uploadModal": "AGuvFG_uploadModal",
 	"errorMessage": "AGuvFG_errorMessage",
-	"headerTabs": "AGuvFG_headerTabs",
-	"uploadArea": "AGuvFG_uploadArea",
-	"uploading": "AGuvFG_uploading",
-	"progressBar": "AGuvFG_progressBar"
+	"historyHeader": "AGuvFG_historyHeader",
+	"deleteButton": "AGuvFG_deleteButton",
+	"choiceSubtitle": "AGuvFG_choiceSubtitle",
+	"historyList": "AGuvFG_historyList",
+	"previewIcon": "AGuvFG_previewIcon",
+	"buttonDisabled": "AGuvFG_buttonDisabled",
+	"choiceFooter": "AGuvFG_choiceFooter",
+	"optionIcon": "AGuvFG_optionIcon",
+	"choiceOptions": "AGuvFG_choiceOptions",
+	"headerContent": "AGuvFG_headerContent",
+	"replacedButton": "AGuvFG_replacedButton",
+	"previewVideo": "AGuvFG_previewVideo",
+	"historyContainer": "AGuvFG_historyContainer",
+	"uploading": "AGuvFG_uploading"
 };
 
 //#endregion
@@ -988,7 +988,7 @@ var import_web$33 = __toESM(require_web(), 1);
 var import_web$34 = __toESM(require_web(), 1);
 var import_web$35 = __toESM(require_web(), 1);
 const _tmpl$$4 = /*#__PURE__*/ (0, import_web$24.template)(`<div><span>Upload to Litterbox</span><div><button>📤 Upload</button><button>📜 Historique</button></div></div>`, 10), _tmpl$2$2 = /*#__PURE__*/ (0, import_web$24.template)(`<p>🐱 Glissez-déposez des fichiers ici ou cliquez pour sélectionner</p>`, 2), _tmpl$3$1 = /*#__PURE__*/ (0, import_web$24.template)(`<p>Taille maximale : 1GB par fichier</p>`, 2), _tmpl$4$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><input type="file" multiple hidden></div>`, 5), _tmpl$5$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><div></div></div>`, 4), _tmpl$6$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><label>Expiration :</label><div><button title="1 Heure">1h</button><button title="12 Heures">12h</button><button title="24 Heures">24h</button><button title="72 Heures (3 Jours)">72h</button></div></div>`, 14), _tmpl$7$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div></div>`, 2), _tmpl$8$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><p>📭 Aucun upload dans l'historique</p><p>Vos uploads apparaîtront ici</p></div>`, 6), _tmpl$9$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><div></div></div>`, 6), _tmpl$0$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><!#><!/><!#><!/></div>`, 8), _tmpl$1$1 = /*#__PURE__*/ (0, import_web$24.template)(`<p>Upload en cours... Veuillez patienter</p>`, 2), _tmpl$10$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><!#><!/><!#><!/><div><p></p><p></p></div><button><svg aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M14.25 1c.41 0 .75.34.75.75V3h5.25c.41 0 .75.34.75.75v.5c0 .41-.34.75-.75.75H3.75A.75.75 0 0 1 3 4.25v-.5c0-.41.34-.75.75-.75H9V1.75c0-.41.34-.75.75-.75h4.5Z" class=""></path><path fill="currentColor" fill-rule="evenodd" d="M5.06 7a1 1 0 0 0-1 1.06l.76 12.13a3 3 0 0 0 3 2.81h8.36a3 3 0 0 0 3-2.81l.75-12.13a1 1 0 0 0-1-1.06H5.07ZM11 12a1 1 0 1 0-2 0v6a1 1 0 1 0 2 0v-6Zm3-1a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0v-6a1 1 0 0 1 1-1Z" clip-rule="evenodd" class=""></path></svg></button></div>`, 22), _tmpl$11$1 = /*#__PURE__*/ (0, import_web$24.template)(`<img>`, 1), _tmpl$12$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div>📄</div>`, 2), _tmpl$13 = /*#__PURE__*/ (0, import_web$24.template)(`<p>⏱️ <!#><!/></p>`, 4), _tmpl$14 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><div><div><p></p><span>🔒 Anonyme</span></div><p><!#><!/> • <!#><!/></p><!#><!/></div><div><button title="Copier le lien">📋</button></div></div>`, 24);
-const { ui: { ModalRoot: ModalRoot$1, ModalHeader: ModalHeader$1, ModalBody: ModalBody$1, ModalFooter: ModalFooter$1, ModalSizes: ModalSizes$1, showToast: showToast$1, Button: Button$2, ButtonColors: ButtonColors$2, ButtonSizes: ButtonSizes$2 }, solid: { createSignal: createSignal$1, createEffect: createEffect$1, Show: Show$2, For, onCleanup }, util: { log, getFiber } } = shelter;
+const { ui: { ModalRoot: ModalRoot$1, ModalHeader: ModalHeader$1, ModalBody: ModalBody$1, ModalFooter: ModalFooter$1, ModalSizes: ModalSizes$1, showToast: showToast$1, Button: Button$2, ButtonColors: ButtonColors$2, ButtonSizes: ButtonSizes$2 }, solid: { createSignal: createSignal$1, createEffect, Show: Show$2, For, onCleanup }, util: { log, getFiber } } = shelter;
 function UploadModal(closeModal, initialFiles = []) {
 	const isRestoring = uploadStatus() === "uploading";
 	const [files, setFiles] = createSignal$1(isRestoring ? currentUploadFiles() : initialFiles);
@@ -1076,7 +1076,7 @@ function UploadModal(closeModal, initialFiles = []) {
 		startBackgroundUpload(currentFiles, currentPreviews, duration);
 		closeModal();
 	};
-	createEffect$1(() => {
+	createEffect(() => {
 		const newFiles = files();
 		Promise.all(newFiles.map((file) => getFilePreview(file))).then((newPreviews) => {
 			setPreviews(newPreviews);
@@ -1689,7 +1689,7 @@ const _tmpl$ = /*#__PURE__*/ (0, import_web.template)(`<button></button>`, 2), _
          }
          </style>`, 2), _tmpl$11 = /*#__PURE__*/ (0, import_web.template)(`<div class="catbox-settings-section"><h3>🎯 Interception des uploads</h3><p>Interceptez les uploads Discord pour choisir entre Catbox et Discord</p><label class="catbox-checkbox-container"><div class="catbox-checkbox-wrapper"><input type="checkbox"><span class="catbox-checkbox-slider"></span></div><span class="catbox-checkbox-label">📋 Intercepter Ctrl+V (collage de fichiers)</span></label><label class="catbox-checkbox-container"><div class="catbox-checkbox-wrapper"><input type="checkbox"><span class="catbox-checkbox-slider"></span></div><span class="catbox-checkbox-label">➕ Intercepter le bouton d'upload Discord</span></label></div>`, 24), _tmpl$12 = /*#__PURE__*/ (0, import_web.template)(`<div class="catbox-settings-section"><h3>⌨️ Raccourci clavier</h3><p>Définissez un raccourci pour ouvrir directement la modale Catbox</p><!#><!/><p class="catbox-keybind-hint">💡 Format : ctrl+shift+u, alt+u, ctrl+alt+shift+c, etc.</p></div>`, 10);
 const { observeDom } = shelter.plugin.scoped;
-const { ui: { openModal, showToast, Header, HeaderTags, Text, TextBox, Button, ButtonSizes, ButtonColors, focusring }, solid: { Show, render, createEffect, untrack }, plugin } = shelter;
+const { ui: { openModal, showToast, Header, HeaderTags, Text, TextBox, Button, ButtonSizes, ButtonColors, focusring }, solid: { Show }, plugin } = shelter;
 const { subscribe } = shelter.plugin.scoped.flux;
 function uploadButton() {
 	return (() => {
@@ -1869,10 +1869,7 @@ function onLoad() {
 			if (element.dataset.catboxUpload) return;
 			unobserve();
 			element.dataset.catboxUpload = true;
-			const container = document.createElement("div");
-			container.style.display = "inline-flex";
-			element.prepend(container);
-			render(() => uploadButton(), container);
+			element.prepend(uploadButton());
 		});
 		setTimeout(() => unobserve(), 2e3);
 	});
