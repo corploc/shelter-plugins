@@ -2,7 +2,7 @@ const { observeDom } = shelter.plugin.scoped;
 
 const {
    ui: { openModal, showToast, Header, HeaderTags, Text, TextBox, Button, ButtonSizes, ButtonColors, focusring },
-   solid: { Show, render, createEffect, untrack },
+   solid: { Show },
    plugin,
 } = shelter;
 
@@ -219,14 +219,7 @@ export function onLoad() {
          if (element.dataset.catboxUpload) return;
          unobserve();
          element.dataset.catboxUpload = true;
-         
-         // Create a container for the reactive button
-         const container = document.createElement('div');
-         container.style.display = 'inline-flex';
-         element.prepend(container);
-         
-         // Render the button reactively using Solid's render
-         render(() => uploadButton(), container);
+         element.prepend(uploadButton());
       });
       setTimeout(() => unobserve(), 2000);
    });
