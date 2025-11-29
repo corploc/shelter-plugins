@@ -25,7 +25,7 @@ function uploadButton() {
          onClick={() => {
             openModal((p) => UploadModal(p.close, []));
          }}
-         title={uploadStatus() === "uploading" ? `Upload en cours... ${Math.round(uploadProgress())}%` : "Upload to Catbox"}
+         title={uploadStatus() === "uploading" ? `Uploading... ${Math.round(uploadProgress())}%` : "Upload to Catbox"}
       >
          <Show when={uploadStatus() === "uploading"} fallback={<UploadIcon />}>
             <HourglassIcon />
@@ -61,8 +61,8 @@ function handlePaste(event) {
    const allowedFiles = files.filter(isFileTypeAllowed);
    if (allowedFiles.length < files.length) {
       showToast({
-         title: "Fichiers ignorés",
-         content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)",
+         title: "Files ignored",
+         content: "Some file types are not allowed (.exe, .scr, .cpl, .doc*, .jar)",
       });
    }
 
@@ -132,8 +132,8 @@ function handleFileInput(event) {
 
    if (allowedFiles.length < files.length) {
       showToast({
-         title: "Fichiers ignorés",
-         content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)",
+         title: "Files ignored",
+         content: "Some file types are not allowed (.exe, .scr, .cpl, .doc*, .jar)",
       });
    }
 
@@ -374,8 +374,8 @@ export const settings = () => (
       </style>
 
       <div class="catbox-settings-section">
-         <h3>🎯 Interception des uploads</h3>
-         <p>Interceptez les uploads Discord pour choisir entre Catbox et Discord</p>
+         <h3>🎯 Upload Interception</h3>
+         <p>Intercept Discord uploads to choose between Catbox and Discord</p>
          
          <label class="catbox-checkbox-container">
             <div class="catbox-checkbox-wrapper">
@@ -386,14 +386,14 @@ export const settings = () => (
                      plugin.store.interceptPaste = e.target.checked;
                      interceptState.pasteEnabled = e.target.checked;
                      showToast({
-                        title: "Interception Ctrl+V",
-                        content: e.target.checked ? "✅ Activée" : "❌ Désactivée",
+                        title: "Ctrl+V Interception",
+                        content: e.target.checked ? "✅ Enabled" : "❌ Disabled",
                      });
                   }}
                />
                <span class="catbox-checkbox-slider"></span>
             </div>
-            <span class="catbox-checkbox-label">📋 Intercepter Ctrl+V (collage de fichiers)</span>
+            <span class="catbox-checkbox-label">📋 Intercept Ctrl+V (file paste)</span>
          </label>
 
          <label class="catbox-checkbox-container">
@@ -405,20 +405,20 @@ export const settings = () => (
                      plugin.store.interceptFileInput = e.target.checked;
                      interceptState.fileInputEnabled = e.target.checked;
                      showToast({
-                        title: "Interception Upload",
-                        content: e.target.checked ? "✅ Activée" : "❌ Désactivée",
+                        title: "Upload Interception",
+                        content: e.target.checked ? "✅ Enabled" : "❌ Disabled",
                      });
                   }}
                />
                <span class="catbox-checkbox-slider"></span>
             </div>
-            <span class="catbox-checkbox-label">➕ Intercepter le bouton d'upload Discord</span>
+            <span class="catbox-checkbox-label">➕ Intercept Discord upload button</span>
          </label>
       </div>
 
       <div class="catbox-settings-section">
-         <h3>⌨️ Raccourci clavier</h3>
-         <p>Définissez un raccourci pour ouvrir directement la modale Catbox</p>
+         <h3>⌨️ Keyboard Shortcut</h3>
+         <p>Set a shortcut to directly open the Catbox modal</p>
          <TextBox
             class="catbox-keybind-input"
             placeholder="ctrl+shift+u"
@@ -426,13 +426,13 @@ export const settings = () => (
             onInput={(v) => {
                plugin.store.uploadKeybind = v.toLowerCase();
                showToast({
-                  title: "Raccourci mis à jour",
-                  content: `Nouveau raccourci : ${v}`,
+                  title: "Shortcut updated",
+                  content: `New shortcut: ${v}`,
                });
             }}
          />
          <p class="catbox-keybind-hint">
-            💡 Format : ctrl+shift+u, alt+u, ctrl+alt+shift+c, etc.
+            💡 Format: ctrl+shift+u, alt+u, ctrl+alt+shift+c, etc.
          </p>
       </div>
       <br />

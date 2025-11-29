@@ -45,8 +45,8 @@ export function UploadModal(closeModal, initialFiles = []) {
       try {
          await navigator.clipboard.writeText(text);
          showToast({
-            title: "Copié!",
-            content: "Le lien a été copié dans le presse-papier",
+            title: "Copied!",
+            content: "Link copied to clipboard",
          });
       } catch (err) {
          log("Failed to copy to clipboard", "error");
@@ -78,8 +78,8 @@ export function UploadModal(closeModal, initialFiles = []) {
          
          if (allowedFiles.length < droppedFiles.length) {
             showToast({
-               title: "Fichiers ignorés",
-               content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)",
+               title: "Files ignored",
+               content: "Some file types are not allowed (.exe, .scr, .cpl, .doc*, .jar)",
             });
          }
 
@@ -87,8 +87,8 @@ export function UploadModal(closeModal, initialFiles = []) {
          const oversizedFiles = allowedFiles.filter(f => f.size > 1024 * 1024 * 1024);
          if (oversizedFiles.length > 0) {
             showToast({
-               title: "Fichiers trop volumineux",
-               content: `Certains fichiers dépassent la limite de 1GB et ont été ignorés.`,
+               title: "Files too large",
+               content: `Some files exceed the 1GB limit and were ignored.`,
             });
          }
          
@@ -107,8 +107,8 @@ export function UploadModal(closeModal, initialFiles = []) {
 
          if (allowedFiles.length < selectedFiles.length) {
             showToast({
-               title: "Fichiers ignorés",
-               content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)",
+               title: "Files ignored",
+               content: "Some file types are not allowed (.exe, .scr, .cpl, .doc*, .jar)",
             });
          }
 
@@ -116,8 +116,8 @@ export function UploadModal(closeModal, initialFiles = []) {
          const oversizedFiles = allowedFiles.filter(f => f.size > 1024 * 1024 * 1024);
          if (oversizedFiles.length > 0) {
             showToast({
-               title: "Fichiers trop volumineux",
-               content: `Certains fichiers dépassent la limite de 1GB et ont été ignorés.`,
+               title: "Files too large",
+               content: `Some files exceed the 1GB limit and were ignored.`,
             });
          }
 
@@ -174,7 +174,7 @@ export function UploadModal(closeModal, initialFiles = []) {
                      class={`${styles.tabButton} ${currentTab() === "history" ? styles.activeTab : ""}`}
                      onClick={() => setCurrentTab("history")}
                   >
-                     📜 Historique
+                     📜 History
                   </button>
                </div>
             </div>
@@ -188,9 +188,9 @@ export function UploadModal(closeModal, initialFiles = []) {
                   onDrop={handleDrop}
                   onClick={handleUploadClick}
                >
-                  <Show when={uploadStatus() !== "uploading"} fallback={<p>Upload en cours... Veuillez patienter</p>}>
-                     <p>🐱 Glissez-déposez des fichiers ici ou cliquez pour sélectionner</p>
-                     <p class={styles.uploadInfo}>Taille maximale : 1GB par fichier</p>
+                  <Show when={uploadStatus() !== "uploading"} fallback={<p>Uploading... Please wait</p>}>
+                     <p>🐱 Drag and drop files here or click to select</p>
+                     <p class={styles.uploadInfo}>Max size: 1GB per file</p>
                   </Show>
                   <input
                      type="file"
@@ -208,13 +208,13 @@ export function UploadModal(closeModal, initialFiles = []) {
                </Show>
                
                <div class={styles.durationSelector}>
-                  <label>Expiration :</label>
+                  <label>Expiration:</label>
                   <div class={styles.durationOptions}>
                      <button 
                         class={`${styles.durationOption} ${uploadDuration() === FileLifetime.OneHour ? styles.active : ""}`}
                         onClick={() => setUploadDuration(FileLifetime.OneHour)}
                         disabled={uploadStatus() === "uploading"}
-                        title="1 Heure"
+                        title="1 Hour"
                      >
                         1h
                      </button>
@@ -222,7 +222,7 @@ export function UploadModal(closeModal, initialFiles = []) {
                         class={`${styles.durationOption} ${uploadDuration() === FileLifetime.TwelveHours ? styles.active : ""}`}
                         onClick={() => setUploadDuration(FileLifetime.TwelveHours)}
                         disabled={uploadStatus() === "uploading"}
-                        title="12 Heures"
+                        title="12 Hours"
                      >
                         12h
                      </button>
@@ -230,7 +230,7 @@ export function UploadModal(closeModal, initialFiles = []) {
                         class={`${styles.durationOption} ${uploadDuration() === FileLifetime.OneDay ? styles.active : ""}`}
                         onClick={() => setUploadDuration(FileLifetime.OneDay)}
                         disabled={uploadStatus() === "uploading"}
-                        title="24 Heures"
+                        title="24 Hours"
                      >
                         24h
                      </button>
@@ -238,7 +238,7 @@ export function UploadModal(closeModal, initialFiles = []) {
                         class={`${styles.durationOption} ${uploadDuration() === FileLifetime.ThreeDays ? styles.active : ""}`}
                         onClick={() => setUploadDuration(FileLifetime.ThreeDays)}
                         disabled={uploadStatus() === "uploading"}
-                        title="72 Heures (3 Jours)"
+                        title="72 Hours (3 Days)"
                      >
                         72h
                      </button>
@@ -300,8 +300,8 @@ export function UploadModal(closeModal, initialFiles = []) {
                <div class={styles.historyContainer}>
                   <Show when={shelter.plugin.store.uploadHistory.length === 0}>
                      <div class={styles.emptyHistory}>
-                        <p>📭 Aucun upload dans l'historique</p>
-                        <p class={styles.uploadInfo}>Vos uploads apparaîtront ici</p>
+                        <p>📭 No uploads in history</p>
+                        <p class={styles.uploadInfo}>Your uploads will appear here</p>
                      </div>
                   </Show>
                   <div class={styles.historyList}>
@@ -318,7 +318,7 @@ export function UploadModal(closeModal, initialFiles = []) {
                                     <div class={styles.historyHeader}>
                                        <p class={styles.historyFilename}>{item.filename}</p>
                                        <span class={`${styles.badge} ${styles.badgeAnonymous}`}>
-                                          🔒 Anonyme
+                                          🔒 Anonymous
                                        </span>
                                     </div>
                                     <p class={styles.historyMeta}>
@@ -334,7 +334,7 @@ export function UploadModal(closeModal, initialFiles = []) {
                                     <button
                                        class={styles.copyButton}
                                        onClick={() => copyToClipboard(item.url)}
-                                       title="Copier le lien"
+                                       title="Copy link"
                                     >
                                        📋
                                     </button>

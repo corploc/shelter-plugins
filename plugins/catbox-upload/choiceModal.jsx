@@ -20,11 +20,11 @@ export function ChoiceModal(closeModal, files, onCatboxChoice, onDiscordChoice) 
 
    return (
       <ModalRoot size={ModalSizes.SMALL} class={styles.choiceModal}>
-         <ModalHeader close={closeModal}>Choisir la méthode d'upload</ModalHeader>
+         <ModalHeader close={closeModal}>Choose upload method</ModalHeader>
          <ModalBody>
             <div class={styles.choiceContent}>
                <p class={styles.choiceTitle}>
-                  🐱 Vous êtes sur le point d'uploader {fileCount} fichier{fileCount > 1 ? 's' : ''}
+                  🐱 You are about to upload {fileCount} file{fileCount > 1 ? 's' : ''}
                </p>
                <p class={styles.choiceSubtitle}>{fileNames}</p>
                
@@ -40,13 +40,13 @@ export function ChoiceModal(closeModal, files, onCatboxChoice, onDiscordChoice) 
                      <div class={styles.optionInfo}>
                         <h3>Catbox (Litterbox)</h3>
                         <ul>
-                           <li>✅ Jusqu'à 1GB par fichier</li>
-                           <li>✅ Lien copié automatiquement</li>
-                           <li>✅ Historique des uploads</li>
-                           <li>⏱️ Expiration configurable (1h - 72h)</li>
+                           <li>✅ Up to 1GB per file</li>
+                           <li>✅ Link copied automatically</li>
+                           <li>✅ Upload history</li>
+                           <li>⏱️ Configurable expiration (1h - 72h)</li>
                         </ul>
                      </div>
-                     <div class={styles.optionBadge}>Recommandé</div>
+                     <div class={styles.optionBadge}>Recommended</div>
                   </button>
 
                   <button
@@ -58,12 +58,12 @@ export function ChoiceModal(closeModal, files, onCatboxChoice, onDiscordChoice) 
                   >
                      <div class={styles.optionIcon}>💬</div>
                      <div class={styles.optionInfo}>
-                        <h3>Discord (Natif)</h3>
+                        <h3>Discord (Native)</h3>
                         <ul>
-                           <li>✅ Intégré à Discord</li>
-                           <li>✅ Permanent (tant que message existe)</li>
-                           <li>⚠️ Limite de 25MB (ou 500MB Nitro)</li>
-                           <li>⚠️ Pas d'historique</li>
+                           <li>✅ Integrated into Discord</li>
+                           <li>✅ Permanent (as long as message exists)</li>
+                           <li>⚠️ 25MB limit (or 500MB Nitro)</li>
+                           <li>⚠️ No history</li>
                         </ul>
                      </div>
                   </button>
@@ -72,7 +72,7 @@ export function ChoiceModal(closeModal, files, onCatboxChoice, onDiscordChoice) 
          </ModalBody>
          <ModalFooter>
             <div class={styles.choiceFooter}>
-               <p class={styles.choiceHint}>💡 Cliquez sur votre choix ci-dessus ou appuyez sur Échap pour annuler</p>
+               <p class={styles.choiceHint}>💡 Click your choice above or press Esc to cancel</p>
             </div>
          </ModalFooter>
       </ModalRoot>

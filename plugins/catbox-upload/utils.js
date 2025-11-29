@@ -135,18 +135,18 @@ export function getTimeRemaining(uploadDate, duration = FileLifetime.ThreeDays) 
    const now = Date.now();
    const remaining = expirationDate - now;
 
-   if (remaining <= 0) return "Expiré";
+   if (remaining <= 0) return "Expired";
 
    const hours = Math.floor(remaining / (60 * 60 * 1000));
    const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
 
    if (hours >= 48) {
       const days = Math.floor(hours / 24);
-      return `${days}j ${hours % 24}h restant${days > 1 ? 's' : ''}`;
+      return `${days}d ${hours % 24}h remaining`;
    } else if (hours > 0) {
-      return `${hours}h ${minutes}m restant${hours > 1 ? 's' : ''}`;
+      return `${hours}h ${minutes}m remaining`;
    } else {
-      return `${minutes}m restant${minutes > 1 ? 's' : ''}`;
+      return `${minutes}m remaining`;
    }
 }
 
@@ -159,10 +159,10 @@ export function formatUploadDate(dateString) {
    const hours = Math.floor(minutes / 60);
    const days = Math.floor(hours / 24);
 
-   if (days > 0) return `Il y a ${days}j`;
-   if (hours > 0) return `Il y a ${hours}h`;
-   if (minutes > 0) return `Il y a ${minutes}min`;
-   return "À l'instant";
+   if (days > 0) return `${days} days ago`;
+   if (hours > 0) return `${hours} hours ago`;
+   if (minutes > 0) return `${minutes} min ago`;
+   return "Just now";
 }
 
 function getTotalUploadedSize(uploadedSizes) {

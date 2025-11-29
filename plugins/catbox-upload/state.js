@@ -31,8 +31,8 @@ export function cancelUpload() {
         abortController.abort();
         resetUploadState();
         showToast({
-            title: "Upload annulé",
-            content: "L'envoi des fichiers a été stoppé",
+            title: "Upload cancelled",
+            content: "File upload has been stopped",
         });
     }
 }
@@ -62,9 +62,9 @@ export async function startBackgroundUpload(files, previews, duration) {
 
         if (failedUploads.length == files.length) {
             // Use the error message from the first failure if available
-            const errorMessage = failedUploads[0] || "Tous les fichiers n'ont pas pu être uploadés";
+            const errorMessage = failedUploads[0] || "All files failed to upload";
             showToast({
-                title: "Upload échoué!",
+                title: "Upload failed!",
                 content: errorMessage,
                 duration: 5000 // Show longer for errors
             });
@@ -73,13 +73,13 @@ export async function startBackgroundUpload(files, previews, duration) {
         } else {
             if (failedUploads.length > 0) {
                 showToast({
-                    title: "Upload partiel!",
-                    content: "Certains fichiers n'ont pas pu être uploadés",
+                    title: "Partial upload!",
+                    content: "Some files failed to upload",
                 });
             } else {
                 showToast({
-                    title: "Upload réussi! 🎉",
-                    content: "Liens prêts",
+                    title: "Upload successful! 🎉",
+                    content: "Links ready",
                 });
             }
 
@@ -95,8 +95,8 @@ export async function startBackgroundUpload(files, previews, duration) {
             const success = await injectLinks(urls);
             if (success) {
                 showToast({
-                    title: "Copié!",
-                    content: "Liens insérés et copiés",
+                    title: "Copied!",
+                    content: "Links inserted and copied",
                 });
                 // Copy to clipboard as well
                 const allUrls = urls.join(" ");
