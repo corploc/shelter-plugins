@@ -195,3 +195,353 @@
   font-size: 12px;
   margin-top: 5px;
 }
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-right: 10px;
+}
+
+.historyToggle {
+  background: var(--button-secondary-background);
+  color: var(--text-normal);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.historyToggle:hover {
+  background: var(--button-secondary-background-hover);
+  transform: translateY(-1px);
+}
+
+.historyContainer {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.emptyHistory {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.emptyHistory p:first-child {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--background-tertiary);
+  transition: all 0.2s ease;
+}
+
+.historyItem:hover {
+  background: var(--background-secondary-alt);
+  border-color: var(--brand-experiment);
+  transform: translateX(2px);
+}
+
+.historyPreview {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--background-tertiary);
+}
+
+.historyInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.historyFilename {
+  font-weight: 600;
+  color: var(--text-normal);
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historyMeta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 4px 0;
+}
+
+.historyExpiry {
+  font-size: 12px;
+  color: var(--status-warning);
+  margin: 0;
+  font-weight: 500;
+}
+
+.historyPermanent {
+  font-size: 12px;
+  color: var(--status-positive);
+  margin: 0;
+  font-weight: 500;
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badgeAnonymous {
+  background: var(--status-warning-background);
+  color: var(--status-warning);
+  border: 1px solid var(--status-warning);
+}
+
+.badgeAuth {
+  background: var(--status-positive-background);
+  color: var(--status-positive);
+  border: 1px solid var(--status-positive);
+}
+
+.anonymousToggle {
+  margin: 15px 0;
+  padding: 15px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--background-tertiary);
+}
+
+.anonymousLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.anonymousLabel input[type="checkbox"] {
+  display: none;
+}
+
+.anonymousCheckbox {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--background-tertiary);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.anonymousCheckbox::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.anonymousLabel input[type="checkbox"]:checked + .anonymousCheckbox {
+  background: var(--status-warning);
+}
+
+.anonymousLabel input[type="checkbox"]:checked + .anonymousCheckbox::after {
+  left: 22px;
+}
+
+.anonymousLabel input[type="checkbox"]:disabled + .anonymousCheckbox {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.anonymousText {
+  font-size: 13px;
+  color: var(--text-normal);
+  line-height: 1.4;
+}
+
+.anonymousText small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.buttonDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.historyActions {
+  display: flex;
+  gap: 8px;
+}
+
+.copyButton,
+.deleteButton {
+  background: transparent;
+  border: 1px solid var(--background-modifier-accent);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.copyButton:hover {
+  background: var(--brand-experiment-15a);
+  border-color: var(--brand-experiment);
+  transform: scale(1.1);
+}
+
+.deleteButton:hover {
+  background: var(--status-danger-background);
+  border-color: var(--status-danger);
+  transform: scale(1.1);
+}
+
+.choiceModal {
+  user-select: none;
+}
+
+.choiceContent {
+  padding: 10px 0;
+}
+
+.choiceTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-normal);
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.choiceSubtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 20px 0;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.choiceOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.choiceOption {
+  display: flex;
+  position: relative;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 20px;
+  background: var(--background-secondary);
+  border-radius: 12px;
+  border: 3px solid var(--background-tertiary);
+  transition: all 0.25s ease;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.choiceOption:hover {
+  border-color: var(--brand-experiment);
+  background: var(--background-secondary-alt);
+  transform: scale(1.03);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.choiceOption:first-child:hover {
+  border-color: var(--status-positive);
+}
+
+.optionBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--status-positive);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.optionIcon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.optionInfo {
+  flex: 1;
+}
+
+.optionInfo h3 {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.optionInfo ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.optionInfo ul li {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 4px 0;
+  padding-left: 0;
+}
+
+.choiceFooter {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.choiceHint {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0;
+  font-style: italic;
+}
