@@ -590,62 +590,62 @@ shelter.plugin.scoped.ui.injectCss(`.AGuvFG_uploadArea {
 }
 `);
 var modal_jsx_default = {
-	"historyFilename": "AGuvFG_historyFilename",
-	"activeTab": "AGuvFG_activeTab",
-	"previewItemInfo": "AGuvFG_previewItemInfo",
-	"historyPermanent": "AGuvFG_historyPermanent",
-	"historyInfo": "AGuvFG_historyInfo",
-	"copyButton": "AGuvFG_copyButton",
-	"previewArea": "AGuvFG_previewArea",
-	"historyMeta": "AGuvFG_historyMeta",
-	"uploadArea": "AGuvFG_uploadArea",
-	"progressBar": "AGuvFG_progressBar",
-	"footer": "AGuvFG_footer",
 	"tabButton": "AGuvFG_tabButton",
-	"headerTabs": "AGuvFG_headerTabs",
-	"progressFill": "AGuvFG_progressFill",
-	"badgeAuth": "AGuvFG_badgeAuth",
-	"emptyHistory": "AGuvFG_emptyHistory",
-	"choiceContent": "AGuvFG_choiceContent",
-	"badge": "AGuvFG_badge",
-	"choiceTitle": "AGuvFG_choiceTitle",
-	"sway": "AGuvFG_sway",
-	"uploadInfo": "AGuvFG_uploadInfo",
-	"historyItem": "AGuvFG_historyItem",
-	"historyPreview": "AGuvFG_historyPreview",
-	"badgeAnonymous": "AGuvFG_badgeAnonymous",
-	"durationSelector": "AGuvFG_durationSelector",
-	"previewImage": "AGuvFG_previewImage",
-	"dragOver": "AGuvFG_dragOver",
-	"durationOption": "AGuvFG_durationOption",
-	"choiceOption": "AGuvFG_choiceOption",
-	"optionBadge": "AGuvFG_optionBadge",
-	"optionInfo": "AGuvFG_optionInfo",
-	"durationOptions": "AGuvFG_durationOptions",
-	"historyExpiry": "AGuvFG_historyExpiry",
-	"historyActions": "AGuvFG_historyActions",
-	"shake": "AGuvFG_shake",
-	"choiceHint": "AGuvFG_choiceHint",
-	"choiceModal": "AGuvFG_choiceModal",
-	"previewItem": "AGuvFG_previewItem",
-	"active": "AGuvFG_active",
-	"removeButton": "AGuvFG_removeButton",
-	"uploadModal": "AGuvFG_uploadModal",
-	"errorMessage": "AGuvFG_errorMessage",
-	"historyHeader": "AGuvFG_historyHeader",
-	"deleteButton": "AGuvFG_deleteButton",
-	"choiceSubtitle": "AGuvFG_choiceSubtitle",
-	"historyList": "AGuvFG_historyList",
-	"previewIcon": "AGuvFG_previewIcon",
 	"buttonDisabled": "AGuvFG_buttonDisabled",
-	"choiceFooter": "AGuvFG_choiceFooter",
-	"optionIcon": "AGuvFG_optionIcon",
 	"choiceOptions": "AGuvFG_choiceOptions",
-	"headerContent": "AGuvFG_headerContent",
+	"optionBadge": "AGuvFG_optionBadge",
+	"errorMessage": "AGuvFG_errorMessage",
+	"headerTabs": "AGuvFG_headerTabs",
+	"choiceTitle": "AGuvFG_choiceTitle",
+	"progressBar": "AGuvFG_progressBar",
+	"durationSelector": "AGuvFG_durationSelector",
+	"choiceHint": "AGuvFG_choiceHint",
+	"durationOption": "AGuvFG_durationOption",
+	"uploadArea": "AGuvFG_uploadArea",
+	"durationOptions": "AGuvFG_durationOptions",
+	"removeButton": "AGuvFG_removeButton",
+	"uploadInfo": "AGuvFG_uploadInfo",
+	"previewItemInfo": "AGuvFG_previewItemInfo",
 	"replacedButton": "AGuvFG_replacedButton",
 	"previewVideo": "AGuvFG_previewVideo",
+	"previewArea": "AGuvFG_previewArea",
+	"footer": "AGuvFG_footer",
+	"previewImage": "AGuvFG_previewImage",
+	"activeTab": "AGuvFG_activeTab",
+	"shake": "AGuvFG_shake",
+	"historyPermanent": "AGuvFG_historyPermanent",
+	"badgeAnonymous": "AGuvFG_badgeAnonymous",
+	"badgeAuth": "AGuvFG_badgeAuth",
+	"active": "AGuvFG_active",
+	"historyActions": "AGuvFG_historyActions",
+	"choiceModal": "AGuvFG_choiceModal",
+	"historyPreview": "AGuvFG_historyPreview",
+	"choiceFooter": "AGuvFG_choiceFooter",
+	"optionIcon": "AGuvFG_optionIcon",
+	"choiceContent": "AGuvFG_choiceContent",
+	"historyHeader": "AGuvFG_historyHeader",
+	"headerContent": "AGuvFG_headerContent",
+	"previewIcon": "AGuvFG_previewIcon",
+	"deleteButton": "AGuvFG_deleteButton",
+	"previewItem": "AGuvFG_previewItem",
 	"historyContainer": "AGuvFG_historyContainer",
-	"uploading": "AGuvFG_uploading"
+	"optionInfo": "AGuvFG_optionInfo",
+	"historyExpiry": "AGuvFG_historyExpiry",
+	"uploading": "AGuvFG_uploading",
+	"choiceOption": "AGuvFG_choiceOption",
+	"historyInfo": "AGuvFG_historyInfo",
+	"emptyHistory": "AGuvFG_emptyHistory",
+	"progressFill": "AGuvFG_progressFill",
+	"uploadModal": "AGuvFG_uploadModal",
+	"historyItem": "AGuvFG_historyItem",
+	"dragOver": "AGuvFG_dragOver",
+	"historyMeta": "AGuvFG_historyMeta",
+	"badge": "AGuvFG_badge",
+	"copyButton": "AGuvFG_copyButton",
+	"choiceSubtitle": "AGuvFG_choiceSubtitle",
+	"historyFilename": "AGuvFG_historyFilename",
+	"historyList": "AGuvFG_historyList",
+	"sway": "AGuvFG_sway"
 };
 
 //#endregion
@@ -746,14 +746,14 @@ else if (duration === FileLifetime.OneDay) durationMs = 864e5;
 	const expirationDate = new Date(uploadDate).getTime() + durationMs;
 	const now = Date.now();
 	const remaining = expirationDate - now;
-	if (remaining <= 0) return "Expiré";
+	if (remaining <= 0) return "Expired";
 	const hours = Math.floor(remaining / 36e5);
 	const minutes = Math.floor(remaining % 36e5 / 6e4);
 	if (hours >= 48) {
 		const days = Math.floor(hours / 24);
-		return `${days}j ${hours % 24}h restant${days > 1 ? "s" : ""}`;
-	} else if (hours > 0) return `${hours}h ${minutes}m restant${hours > 1 ? "s" : ""}`;
-else return `${minutes}m restant${minutes > 1 ? "s" : ""}`;
+		return `${days}d ${hours % 24}h remaining`;
+	} else if (hours > 0) return `${hours}h ${minutes}m remaining`;
+else return `${minutes}m remaining`;
 }
 function formatUploadDate(dateString) {
 	const date = new Date(dateString);
@@ -763,10 +763,10 @@ function formatUploadDate(dateString) {
 	const minutes = Math.floor(seconds / 60);
 	const hours = Math.floor(minutes / 60);
 	const days = Math.floor(hours / 24);
-	if (days > 0) return `Il y a ${days}j`;
-	if (hours > 0) return `Il y a ${hours}h`;
-	if (minutes > 0) return `Il y a ${minutes}min`;
-	return "À l'instant";
+	if (days > 0) return `${days} days ago`;
+	if (hours > 0) return `${hours} hours ago`;
+	if (minutes > 0) return `${minutes} min ago`;
+	return "Just now";
 }
 const CORS_PROXY = "https://corsproxy.io/?";
 /**
@@ -907,8 +907,8 @@ function cancelUpload() {
 		abortController.abort();
 		resetUploadState();
 		showToast$2({
-			title: "Upload annulé",
-			content: "L'envoi des fichiers a été stoppé"
+			title: "Upload cancelled",
+			content: "File upload has been stopped"
 		});
 	}
 }
@@ -927,9 +927,9 @@ async function startBackgroundUpload(files, previews, duration) {
 		const urls = (await uploadedFiles).filter((result) => result.status === "fulfilled").map((result) => result.value);
 		const failedUploads = (await uploadedFiles).filter((result) => result.status === "rejected").map((result) => result.reason);
 		if (failedUploads.length == files.length) {
-			const errorMessage = failedUploads[0] || "Tous les fichiers n'ont pas pu être uploadés";
+			const errorMessage = failedUploads[0] || "All files failed to upload";
 			showToast$2({
-				title: "Upload échoué!",
+				title: "Upload failed!",
 				content: errorMessage,
 				duration: 5e3
 			});
@@ -937,12 +937,12 @@ async function startBackgroundUpload(files, previews, duration) {
 			setUploadError(errorMessage);
 		} else {
 			if (failedUploads.length > 0) showToast$2({
-				title: "Upload partiel!",
-				content: "Certains fichiers n'ont pas pu être uploadés"
+				title: "Partial upload!",
+				content: "Some files failed to upload"
 			});
 else showToast$2({
-				title: "Upload réussi! 🎉",
-				content: "Liens prêts"
+				title: "Upload successful! 🎉",
+				content: "Links ready"
 			});
 			shelter.plugin.store.previews = {
 				...shelter.plugin.store.previews,
@@ -954,8 +954,8 @@ else showToast$2({
 			const success = await injectLinks(urls);
 			if (success) {
 				showToast$2({
-					title: "Copié!",
-					content: "Liens insérés et copiés"
+					title: "Copied!",
+					content: "Links inserted and copied"
 				});
 				const allUrls = urls.join(" ");
 				try {
@@ -987,7 +987,7 @@ var import_web$32 = __toESM(require_web(), 1);
 var import_web$33 = __toESM(require_web(), 1);
 var import_web$34 = __toESM(require_web(), 1);
 var import_web$35 = __toESM(require_web(), 1);
-const _tmpl$$4 = /*#__PURE__*/ (0, import_web$24.template)(`<div><span>Upload to Litterbox</span><div><button>📤 Upload</button><button>📜 Historique</button></div></div>`, 10), _tmpl$2$2 = /*#__PURE__*/ (0, import_web$24.template)(`<p>🐱 Glissez-déposez des fichiers ici ou cliquez pour sélectionner</p>`, 2), _tmpl$3$1 = /*#__PURE__*/ (0, import_web$24.template)(`<p>Taille maximale : 1GB par fichier</p>`, 2), _tmpl$4$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><input type="file" multiple hidden></div>`, 5), _tmpl$5$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><div></div></div>`, 4), _tmpl$6$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><label>Expiration :</label><div><button title="1 Heure">1h</button><button title="12 Heures">12h</button><button title="24 Heures">24h</button><button title="72 Heures (3 Jours)">72h</button></div></div>`, 14), _tmpl$7$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div></div>`, 2), _tmpl$8$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><p>📭 Aucun upload dans l'historique</p><p>Vos uploads apparaîtront ici</p></div>`, 6), _tmpl$9$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><div></div></div>`, 6), _tmpl$0$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><!#><!/><!#><!/></div>`, 8), _tmpl$1$1 = /*#__PURE__*/ (0, import_web$24.template)(`<p>Upload en cours... Veuillez patienter</p>`, 2), _tmpl$10$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><!#><!/><!#><!/><div><p></p><p></p></div><button><svg aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M14.25 1c.41 0 .75.34.75.75V3h5.25c.41 0 .75.34.75.75v.5c0 .41-.34.75-.75.75H3.75A.75.75 0 0 1 3 4.25v-.5c0-.41.34-.75.75-.75H9V1.75c0-.41.34-.75.75-.75h4.5Z" class=""></path><path fill="currentColor" fill-rule="evenodd" d="M5.06 7a1 1 0 0 0-1 1.06l.76 12.13a3 3 0 0 0 3 2.81h8.36a3 3 0 0 0 3-2.81l.75-12.13a1 1 0 0 0-1-1.06H5.07ZM11 12a1 1 0 1 0-2 0v6a1 1 0 1 0 2 0v-6Zm3-1a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0v-6a1 1 0 0 1 1-1Z" clip-rule="evenodd" class=""></path></svg></button></div>`, 22), _tmpl$11$1 = /*#__PURE__*/ (0, import_web$24.template)(`<img>`, 1), _tmpl$12$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div>📄</div>`, 2), _tmpl$13 = /*#__PURE__*/ (0, import_web$24.template)(`<p>⏱️ <!#><!/></p>`, 4), _tmpl$14 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><div><div><p></p><span>🔒 Anonyme</span></div><p><!#><!/> • <!#><!/></p><!#><!/></div><div><button title="Copier le lien">📋</button></div></div>`, 24);
+const _tmpl$$4 = /*#__PURE__*/ (0, import_web$24.template)(`<div><span>Upload to Litterbox</span><div><button>📤 Upload</button><button>📜 History</button></div></div>`, 10), _tmpl$2$2 = /*#__PURE__*/ (0, import_web$24.template)(`<p>🐱 Drag and drop files here or click to select</p>`, 2), _tmpl$3$1 = /*#__PURE__*/ (0, import_web$24.template)(`<p>Max size: 1GB per file</p>`, 2), _tmpl$4$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><input type="file" multiple hidden></div>`, 5), _tmpl$5$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><div></div></div>`, 4), _tmpl$6$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><label>Expiration:</label><div><button title="1 Hour">1h</button><button title="12 Hours">12h</button><button title="24 Hours">24h</button><button title="72 Hours (3 Days)">72h</button></div></div>`, 14), _tmpl$7$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div></div>`, 2), _tmpl$8$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><p>📭 No uploads in history</p><p>Your uploads will appear here</p></div>`, 6), _tmpl$9$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><div></div></div>`, 6), _tmpl$0$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><!#><!/><!#><!/></div>`, 8), _tmpl$1$1 = /*#__PURE__*/ (0, import_web$24.template)(`<p>Uploading... Please wait</p>`, 2), _tmpl$10$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><!#><!/><!#><!/><div><p></p><p></p></div><button><svg aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M14.25 1c.41 0 .75.34.75.75V3h5.25c.41 0 .75.34.75.75v.5c0 .41-.34.75-.75.75H3.75A.75.75 0 0 1 3 4.25v-.5c0-.41.34-.75.75-.75H9V1.75c0-.41.34-.75.75-.75h4.5Z" class=""></path><path fill="currentColor" fill-rule="evenodd" d="M5.06 7a1 1 0 0 0-1 1.06l.76 12.13a3 3 0 0 0 3 2.81h8.36a3 3 0 0 0 3-2.81l.75-12.13a1 1 0 0 0-1-1.06H5.07ZM11 12a1 1 0 1 0-2 0v6a1 1 0 1 0 2 0v-6Zm3-1a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0v-6a1 1 0 0 1 1-1Z" clip-rule="evenodd" class=""></path></svg></button></div>`, 22), _tmpl$11$1 = /*#__PURE__*/ (0, import_web$24.template)(`<img>`, 1), _tmpl$12$1 = /*#__PURE__*/ (0, import_web$24.template)(`<div>📄</div>`, 2), _tmpl$13 = /*#__PURE__*/ (0, import_web$24.template)(`<p>⏱️ <!#><!/></p>`, 4), _tmpl$14 = /*#__PURE__*/ (0, import_web$24.template)(`<div><!#><!/><div><div><p></p><span>🔒 Anonymous</span></div><p><!#><!/> • <!#><!/></p><!#><!/></div><div><button title="Copy link">📋</button></div></div>`, 24);
 const { ui: { ModalRoot: ModalRoot$1, ModalHeader: ModalHeader$1, ModalBody: ModalBody$1, ModalFooter: ModalFooter$1, ModalSizes: ModalSizes$1, showToast: showToast$1, Button: Button$2, ButtonColors: ButtonColors$2, ButtonSizes: ButtonSizes$2 }, solid: { createSignal: createSignal$1, createEffect, Show: Show$2, For, onCleanup }, util: { log, getFiber } } = shelter;
 function UploadModal(closeModal, initialFiles = []) {
 	const isRestoring = uploadStatus() === "uploading";
@@ -1006,8 +1006,8 @@ function UploadModal(closeModal, initialFiles = []) {
 		try {
 			await navigator.clipboard.writeText(text);
 			showToast$1({
-				title: "Copié!",
-				content: "Le lien a été copié dans le presse-papier"
+				title: "Copied!",
+				content: "Link copied to clipboard"
 			});
 		} catch (err) {
 			log("Failed to copy to clipboard", "error");
@@ -1031,13 +1031,13 @@ function UploadModal(closeModal, initialFiles = []) {
 			const droppedFiles = Array.from(e.dataTransfer.files);
 			const allowedFiles = droppedFiles.filter(isFileTypeAllowed);
 			if (allowedFiles.length < droppedFiles.length) showToast$1({
-				title: "Fichiers ignorés",
-				content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)"
+				title: "Files ignored",
+				content: "Some file types are not allowed (.exe, .scr, .cpl, .doc*, .jar)"
 			});
 			const oversizedFiles = allowedFiles.filter((f) => f.size > 1073741824);
 			if (oversizedFiles.length > 0) showToast$1({
-				title: "Fichiers trop volumineux",
-				content: `Certains fichiers dépassent la limite de 1GB et ont été ignorés.`
+				title: "Files too large",
+				content: `Some files exceed the 1GB limit and were ignored.`
 			});
 			const validFiles = allowedFiles.filter((f) => f.size <= 1073741824);
 			if (validFiles.length > 0) setFiles((prevFiles) => [...prevFiles, ...validFiles]);
@@ -1048,13 +1048,13 @@ function UploadModal(closeModal, initialFiles = []) {
 			const selectedFiles = Array.from(e.target.files);
 			const allowedFiles = selectedFiles.filter(isFileTypeAllowed);
 			if (allowedFiles.length < selectedFiles.length) showToast$1({
-				title: "Fichiers ignorés",
-				content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)"
+				title: "Files ignored",
+				content: "Some file types are not allowed (.exe, .scr, .cpl, .doc*, .jar)"
 			});
 			const oversizedFiles = allowedFiles.filter((f) => f.size > 1073741824);
 			if (oversizedFiles.length > 0) showToast$1({
-				title: "Fichiers trop volumineux",
-				content: `Certains fichiers dépassent la limite de 1GB et ont été ignorés.`
+				title: "Files too large",
+				content: `Some files exceed the 1GB limit and were ignored.`
 			});
 			const validFiles = allowedFiles.filter((f) => f.size <= 1073741824);
 			if (validFiles.length > 0) setFiles((prevFiles) => [...prevFiles, ...validFiles]);
@@ -1466,7 +1466,7 @@ var import_web$20 = __toESM(require_web(), 1);
 var import_web$21 = __toESM(require_web(), 1);
 var import_web$22 = __toESM(require_web(), 1);
 var import_web$23 = __toESM(require_web(), 1);
-const _tmpl$$3 = /*#__PURE__*/ (0, import_web$15.template)(`<div><p>🐱 Vous êtes sur le point d'uploader <!#><!/> fichier<!#><!/></p><p></p><div><button><div>🐱</div><div><h3>Catbox (Litterbox)</h3><ul><li>✅ Jusqu'à 1GB par fichier</li><li>✅ Lien copié automatiquement</li><li>✅ Historique des uploads</li><li>⏱️ Expiration configurable (1h - 72h)</li></ul></div><div>Recommandé</div></button><button><div>💬</div><div><h3>Discord (Natif)</h3><ul><li>✅ Intégré à Discord</li><li>✅ Permanent (tant que message existe)</li><li>⚠️ Limite de 25MB (ou 500MB Nitro)</li><li>⚠️ Pas d'historique</li></ul></div></button></div></div>`, 50), _tmpl$2$1 = /*#__PURE__*/ (0, import_web$15.template)(`<div><p>💡 Cliquez sur votre choix ci-dessus ou appuyez sur Échap pour annuler</p></div>`, 4);
+const _tmpl$$3 = /*#__PURE__*/ (0, import_web$15.template)(`<div><p>🐱 You are about to upload <!#><!/> file<!#><!/></p><p></p><div><button><div>🐱</div><div><h3>Catbox (Litterbox)</h3><ul><li>✅ Up to 1GB per file</li><li>✅ Link copied automatically</li><li>✅ Upload history</li><li>⏱️ Configurable expiration (1h - 72h)</li></ul></div><div>Recommended</div></button><button><div>💬</div><div><h3>Discord (Native)</h3><ul><li>✅ Integrated into Discord</li><li>✅ Permanent (as long as message exists)</li><li>⚠️ 25MB limit (or 500MB Nitro)</li><li>⚠️ No history</li></ul></div></button></div></div>`, 50), _tmpl$2$1 = /*#__PURE__*/ (0, import_web$15.template)(`<div><p>💡 Click your choice above or press Esc to cancel</p></div>`, 4);
 const { ui: { ModalRoot, ModalHeader, ModalBody, ModalFooter, ModalSizes, Button: Button$1, ButtonColors: ButtonColors$1, ButtonSizes: ButtonSizes$1 }, solid: { createSignal, Show: Show$1 } } = shelter;
 function ChoiceModal(closeModal, files, onCatboxChoice, onDiscordChoice) {
 	const fileCount = files.length;
@@ -1482,7 +1482,7 @@ function ChoiceModal(closeModal, files, onCatboxChoice, onDiscordChoice) {
 			return [
 				(0, import_web$23.createComponent)(ModalHeader, {
 					close: closeModal,
-					children: "Choisir la méthode d'upload"
+					children: "Choose upload method"
 				}),
 				(0, import_web$23.createComponent)(ModalBody, { get children() {
 					const _el$ = (0, import_web$19.getNextElement)(_tmpl$$3), _el$2 = _el$.firstChild, _el$3 = _el$2.firstChild, _el$5 = _el$3.nextSibling, [_el$6, _co$] = (0, import_web$21.getNextMarker)(_el$5.nextSibling), _el$4 = _el$6.nextSibling, _el$7 = _el$4.nextSibling, [_el$8, _co$2] = (0, import_web$21.getNextMarker)(_el$7.nextSibling), _el$9 = _el$2.nextSibling, _el$0 = _el$9.nextSibling, _el$1 = _el$0.firstChild, _el$10 = _el$1.firstChild, _el$11 = _el$10.nextSibling, _el$12 = _el$11.nextSibling, _el$13 = _el$1.nextSibling, _el$14 = _el$13.firstChild, _el$15 = _el$14.nextSibling;
@@ -1687,7 +1687,7 @@ const _tmpl$ = /*#__PURE__*/ (0, import_web.template)(`<button></button>`, 2), _
             margin-top: 8px;
             font-style: italic;
          }
-         </style>`, 2), _tmpl$11 = /*#__PURE__*/ (0, import_web.template)(`<div class="catbox-settings-section"><h3>🎯 Interception des uploads</h3><p>Interceptez les uploads Discord pour choisir entre Catbox et Discord</p><label class="catbox-checkbox-container"><div class="catbox-checkbox-wrapper"><input type="checkbox"><span class="catbox-checkbox-slider"></span></div><span class="catbox-checkbox-label">📋 Intercepter Ctrl+V (collage de fichiers)</span></label><label class="catbox-checkbox-container"><div class="catbox-checkbox-wrapper"><input type="checkbox"><span class="catbox-checkbox-slider"></span></div><span class="catbox-checkbox-label">➕ Intercepter le bouton d'upload Discord</span></label></div>`, 24), _tmpl$12 = /*#__PURE__*/ (0, import_web.template)(`<div class="catbox-settings-section"><h3>⌨️ Raccourci clavier</h3><p>Définissez un raccourci pour ouvrir directement la modale Catbox</p><!#><!/><p class="catbox-keybind-hint">💡 Format : ctrl+shift+u, alt+u, ctrl+alt+shift+c, etc.</p></div>`, 10);
+         </style>`, 2), _tmpl$11 = /*#__PURE__*/ (0, import_web.template)(`<div class="catbox-settings-section"><h3>🎯 Upload Interception</h3><p>Intercept Discord uploads to choose between Catbox and Discord</p><label class="catbox-checkbox-container"><div class="catbox-checkbox-wrapper"><input type="checkbox"><span class="catbox-checkbox-slider"></span></div><span class="catbox-checkbox-label">📋 Intercept Ctrl+V (file paste)</span></label><label class="catbox-checkbox-container"><div class="catbox-checkbox-wrapper"><input type="checkbox"><span class="catbox-checkbox-slider"></span></div><span class="catbox-checkbox-label">➕ Intercept Discord upload button</span></label></div>`, 24), _tmpl$12 = /*#__PURE__*/ (0, import_web.template)(`<div class="catbox-settings-section"><h3>⌨️ Keyboard Shortcut</h3><p>Set a shortcut to directly open the Catbox modal</p><!#><!/><p class="catbox-keybind-hint">💡 Format: ctrl+shift+u, alt+u, ctrl+alt+shift+c, etc.</p></div>`, 10);
 const { observeDom } = shelter.plugin.scoped;
 const { ui: { openModal, showToast, Header, HeaderTags, Text, TextBox, Button, ButtonSizes, ButtonColors, focusring }, solid: { Show }, plugin } = shelter;
 const { subscribe } = shelter.plugin.scoped.flux;
@@ -1710,7 +1710,7 @@ function uploadButton() {
 			}
 		}));
 		(0, import_web$5.effect)((_p$) => {
-			const _v$ = modal_jsx_default.replacedButton, _v$2 = uploadStatus() === "uploading" ? `Upload en cours... ${Math.round(uploadProgress())}%` : "Upload to Catbox";
+			const _v$ = modal_jsx_default.replacedButton, _v$2 = uploadStatus() === "uploading" ? `Uploading... ${Math.round(uploadProgress())}%` : "Upload to Catbox";
 			_v$ !== _p$._v$ && (0, import_web$4.className)(_el$, _p$._v$ = _v$);
 			_v$2 !== _p$._v$2 && (0, import_web$3.setAttribute)(_el$, "title", _p$._v$2 = _v$2);
 			return _p$;
@@ -1743,8 +1743,8 @@ function handlePaste(event) {
 	}
 	const allowedFiles = files.filter(isFileTypeAllowed);
 	if (allowedFiles.length < files.length) showToast({
-		title: "Fichiers ignorés",
-		content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)"
+		title: "Files ignored",
+		content: "Some file types are not allowed (.exe, .scr, .cpl, .doc*, .jar)"
 	});
 	if (allowedFiles.length > 0) {
 		event.preventDefault();
@@ -1800,8 +1800,8 @@ function handleFileInput(event) {
 	const files = Array.from(input.files);
 	const allowedFiles = files.filter(isFileTypeAllowed);
 	if (allowedFiles.length < files.length) showToast({
-		title: "Fichiers ignorés",
-		content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)"
+		title: "Files ignored",
+		content: "Some file types are not allowed (.exe, .scr, .cpl, .doc*, .jar)"
 	});
 	if (allowedFiles.length === 0) return;
 	const dataTransfer = new DataTransfer();
@@ -1925,16 +1925,16 @@ const settings = () => [
 			plugin.store.interceptPaste = e.target.checked;
 			interceptState.pasteEnabled = e.target.checked;
 			showToast({
-				title: "Interception Ctrl+V",
-				content: e.target.checked ? "✅ Activée" : "❌ Désactivée"
+				title: "Ctrl+V Interception",
+				content: e.target.checked ? "✅ Enabled" : "❌ Disabled"
 			});
 		});
 		_el$29.addEventListener("change", (e) => {
 			plugin.store.interceptFileInput = e.target.checked;
 			interceptState.fileInputEnabled = e.target.checked;
 			showToast({
-				title: "Interception Upload",
-				content: e.target.checked ? "✅ Activée" : "❌ Désactivée"
+				title: "Upload Interception",
+				content: e.target.checked ? "✅ Enabled" : "❌ Disabled"
 			});
 		});
 		(0, import_web$5.effect)(() => _el$26.checked = plugin.store.interceptPaste);
@@ -1952,8 +1952,8 @@ const settings = () => [
 			onInput: (v) => {
 				plugin.store.uploadKeybind = v.toLowerCase();
 				showToast({
-					title: "Raccourci mis à jour",
-					content: `Nouveau raccourci : ${v}`
+					title: "Shortcut updated",
+					content: `New shortcut: ${v}`
 				});
 			}
 		}), _el$35, _co$);

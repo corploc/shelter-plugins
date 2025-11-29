@@ -18044,21 +18044,21 @@ shelter.plugin.scoped.ui.injectCss(`.qtaweq_container {
 }
 `);
 var settings_default = {
-	"muted": "qtaweq_muted",
+	"copyButton": "qtaweq_copyButton",
+	"text": "qtaweq_text",
+	"select": "qtaweq_select",
+	"label": "qtaweq_label",
+	"subHeader": "qtaweq_subHeader",
+	"button": "qtaweq_button",
 	"input": "qtaweq_input",
 	"container": "qtaweq_container",
-	"text": "qtaweq_text",
-	"label": "qtaweq_label",
-	"select": "qtaweq_select",
-	"button": "qtaweq_button",
-	"secondaryButton": "qtaweq_secondaryButton",
-	"subHeader": "qtaweq_subHeader",
-	"copyButton": "qtaweq_copyButton",
-	"section": "qtaweq_section",
 	"inputGroup": "qtaweq_inputGroup",
-	"error": "qtaweq_error",
+	"header": "qtaweq_header",
+	"section": "qtaweq_section",
+	"secondaryButton": "qtaweq_secondaryButton",
 	"codeBlock": "qtaweq_codeBlock",
-	"header": "qtaweq_header"
+	"muted": "qtaweq_muted",
+	"error": "qtaweq_error"
 };
 
 //#endregion

@@ -1,5 +1,5 @@
 {
-	"name": "[🔐] PGPCord",
+	"name": "[🔐] - PGPCord",
 	"author": "Corploc 🐦‍🔥",
-	"description": "📨 A plugin that transforms your private chats and group chats into encrypted channels using PGP.\n The keys are synced with our keyserver making it easy to encrypt your messages."
+	"description": "🛡️ A plugin that transforms your private chats and group chats into encrypted channels using PGP.\n The keys are synced with our keyserver making it easy to encrypt your messages."
 }
