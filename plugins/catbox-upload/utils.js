@@ -2,7 +2,7 @@
 // node-catbox requires Node.js modules (fs, path) which aren't available in browser
 
 const previewSize = 256;
-const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB in bytes
+const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB in bytes
 
 // File lifetime constants (compatible with Litterbox API)
 export const FileLifetime = {
@@ -12,60 +12,42 @@ export const FileLifetime = {
    ThreeDays: '72h', // Maximum for Litterbox
 };
 
-const LITTERBOX_API_ENDPOINT = 'https://litterbox.catbox.moe/resources/internals/api.php';
-const CATBOX_API_ENDPOINT = 'https://catbox.moe/user/api.php';
-
-let USERHASH = "";
-
-export function updateUserHash(userhash) {
-   USERHASH = userhash || "";
-}
-
-export function hasUserHash() {
-   return USERHASH && USERHASH.length > 0;
-}
-
-/**
- * Delete a file from Catbox (requires user hash)
- */
-export async function deleteFileFromCatbox(filename) {
-   if (!USERHASH) {
-      throw new Error('User hash required to delete files');
+export function isFileTypeAllowed(file) {
+   const filename = file.name.toLowerCase();
+   // Forbidden: .exe, .scr, .cpl, .doc*, .jar
+   if (filename.endsWith('.exe') || 
+       filename.endsWith('.scr') || 
+       filename.endsWith('.cpl') || 
+       filename.endsWith('.jar') ||
+       /\.doc[a-z0-9]*$/.test(filename)) {
+      return false;
    }
-
-   const formData = new FormData();
-   formData.append('reqtype', 'deletefiles');
-   formData.append('userhash', USERHASH);
-   formData.append('files', filename);
-
-   const response = await fetch(CATBOX_API_ENDPOINT, {
-      method: 'POST',
-      body: formData,
-   });
-
-   if (!response.ok) {
-      throw new Error(`Delete failed with status ${response.status}`);
-   }
-
-   const result = await response.text();
-   
-   if (!result.includes('successfully')) {
-      throw new Error(result || 'Failed to delete file');
-   }
-
    return true;
 }
 
+const LITTERBOX_API_ENDPOINT = 'https://litterbox.catbox.moe/resources/internals/api.php';
+
 export async function getFilePreview(file, isImage, isVideo) {
    const url = file.url ? file.url : URL.createObjectURL(file);
+   const isBlob = !file.url;
 
    if (isImage || file?.type?.startsWith("image/")) {
       return new Promise((resolve) => {
          const img = document.createElement("img");
-         img.crossOrigin = "anonymous";
+         if (!isBlob) img.crossOrigin = "anonymous";
          img.src = url;
 
+         const cleanup = () => {
+            if (isBlob) URL.revokeObjectURL(url);
+         };
+
+         const timeoutId = setTimeout(() => {
+            cleanup();
+            resolve(null);
+         }, 2000);
+
          img.onload = () => {
+            clearTimeout(timeoutId);
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
 
@@ -74,26 +56,45 @@ export async function getFilePreview(file, isImage, isVideo) {
             canvas.height = img.height * scale;
 
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            if (!file.url) URL.revokeObjectURL(img.src);
+            cleanup();
             resolve(canvas.toDataURL("image/webp"));
          };
 
-         img.onerror = () => resolve(null);
+         img.onerror = () => {
+            clearTimeout(timeoutId);
+            cleanup();
+            resolve(null);
+         };
       });
    }
 
    if (isVideo || file?.type?.startsWith("video/")) {
       return new Promise((resolve) => {
          const video = document.createElement("video");
-         video.crossOrigin = "anonymous";
+         if (!isBlob) video.crossOrigin = "anonymous";
          video.preload = "metadata";
          video.src = url;
+         video.muted = true;
+         video.playsInline = true;
+
+         const cleanup = () => {
+            if (isBlob) URL.revokeObjectURL(url);
+            video.removeAttribute('src');
+            video.load();
+         };
+
+         // Timeout to prevent hanging
+         const timeoutId = setTimeout(() => {
+            cleanup();
+            resolve(null);
+         }, 2000);
 
          video.onloadedmetadata = () => {
-            video.currentTime = 1;
+            video.currentTime = 0.1; // Seek to beginning
          };
 
          video.onseeked = () => {
+            clearTimeout(timeoutId);
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
 
@@ -102,11 +103,15 @@ export async function getFilePreview(file, isImage, isVideo) {
             canvas.height = video.videoHeight * scale;
 
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            if (!file.url) URL.revokeObjectURL(video.src);
+            cleanup();
             resolve(canvas.toDataURL("image/webp"));
          };
 
-         video.onerror = () => resolve(null);
+         video.onerror = () => {
+            clearTimeout(timeoutId);
+            cleanup();
+            resolve(null);
+         };
       });
    }
 
@@ -120,9 +125,13 @@ export function formatFileSize(bytes) {
    else return (bytes / 1073741824).toFixed(1) + " GB";
 }
 
-export function getTimeRemaining(uploadDate) {
-   const SEVENTY_TWO_HOURS = 72 * 60 * 60 * 1000;
-   const expirationDate = new Date(uploadDate).getTime() + SEVENTY_TWO_HOURS;
+export function getTimeRemaining(uploadDate, duration = FileLifetime.ThreeDays) {
+   let durationMs = 72 * 60 * 60 * 1000;
+   if (duration === FileLifetime.OneHour) durationMs = 1 * 60 * 60 * 1000;
+   else if (duration === FileLifetime.TwelveHours) durationMs = 12 * 60 * 60 * 1000;
+   else if (duration === FileLifetime.OneDay) durationMs = 24 * 60 * 60 * 1000;
+
+   const expirationDate = new Date(uploadDate).getTime() + durationMs;
    const now = Date.now();
    const remaining = expirationDate - now;
 
@@ -160,91 +169,99 @@ function getTotalUploadedSize(uploadedSizes) {
    return Object.values(uploadedSizes).reduce((acc, size) => acc + size, 0);
 }
 
+const CORS_PROXY = 'https://corsproxy.io/?';
+
 /**
  * Upload a file to Litterbox (browser-compatible implementation)
- * Inspired by node-catbox architecture but adapted for browser environment
+ * Uses XMLHttpRequest to support upload progress tracking
  */
-async function uploadFileToLitterbox(file, duration = FileLifetime.ThreeDays) {
-   const formData = new FormData();
-   formData.append('reqtype', 'fileupload');
-   formData.append('fileToUpload', file);
-   formData.append('time', duration);
+function uploadFileToLitterbox(file, duration = FileLifetime.ThreeDays, signal, onProgress) {
+   return new Promise((resolve, reject) => {
+      const tryUpload = (useProxy) => {
+         const xhr = new XMLHttpRequest();
+         const formData = new FormData();
+         
+         formData.append('reqtype', 'fileupload');
+         formData.append('fileToUpload', file);
+         formData.append('time', duration);
 
-   const response = await fetch(LITTERBOX_API_ENDPOINT, {
-      method: 'POST',
-      body: formData,
+         let url = LITTERBOX_API_ENDPOINT;
+         if (useProxy) {
+            url = CORS_PROXY + LITTERBOX_API_ENDPOINT;
+         }
+
+         xhr.open('POST', url);
+
+         if (signal) {
+            signal.addEventListener('abort', () => {
+               xhr.abort();
+               reject(new Error("Upload cancelled"));
+            });
+         }
+
+         xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable && onProgress) {
+               onProgress(event.loaded / event.total);
+            }
+         };
+
+         xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+               const responseText = xhr.responseText.trim();
+               if (responseText && responseText.startsWith('https://')) {
+                  resolve(responseText);
+               } else {
+                  reject(new Error('Invalid response from Litterbox'));
+               }
+            } else {
+               reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+         };
+
+         xhr.onerror = () => {
+            // If direct upload fails (likely CORS), try proxy regardless of size
+            // Note: Proxy might fail for very large files, but it's the only option without flags
+            if (!useProxy) {
+               tryUpload(true);
+            } else {
+               let msg = 'Network error (CORS).';
+               if (file.size >= 10 * 1024 * 1024) {
+                  msg += ' Large file upload via proxy failed. Try launching Discord with --disable-web-security for direct upload.';
+               }
+               reject(new Error(msg));
+            }
+         };
+
+         xhr.send(formData);
+      };
+
+      tryUpload(false);
    });
-
-   if (!response.ok) {
-      throw new Error(`Upload failed with status ${response.status}`);
-   }
-
-   const url = await response.text();
-   const trimmedUrl = url.trim();
-   
-   if (!trimmedUrl || !trimmedUrl.startsWith('https://')) {
-      throw new Error('Invalid response from Litterbox');
-   }
-
-   return trimmedUrl;
 }
 
-/**
- * Upload a file to Catbox with user hash (permanent storage)
- */
-async function uploadFileToCatbox(file) {
-   if (!USERHASH) {
-      throw new Error('User hash required for Catbox upload');
-   }
-
-   const formData = new FormData();
-   formData.append('reqtype', 'fileupload');
-   formData.append('fileToUpload', file);
-   formData.append('userhash', USERHASH);
-
-   const response = await fetch(CATBOX_API_ENDPOINT, {
-      method: 'POST',
-      body: formData,
-   });
-
-   if (!response.ok) {
-      throw new Error(`Upload failed with status ${response.status}`);
-   }
-
-   const url = await response.text();
-   const trimmedUrl = url.trim();
-   
-   if (!trimmedUrl || !trimmedUrl.startsWith('https://')) {
-      throw new Error('Invalid response from Catbox');
-   }
-
-   return trimmedUrl;
-}
-
-export async function uploadFiles(files, _previews, onProgress, useAnonymous = false) {
+export async function uploadFiles(files, _previews, onProgress, duration = FileLifetime.ThreeDays, signal) {
    const totalSize = files.reduce((acc, file) => acc + file.size, 0);
    let uploadedSize = 0;
    const previews = {};
    const results = [];
    const uploadHistory = [];
 
-   // Determine if we should use Catbox or Litterbox
-   const shouldUseCatbox = !useAnonymous && USERHASH && USERHASH.length > 0;
-
    // Upload files sequentially to track progress properly
    for (let index = 0; index < files.length; index++) {
+      if (signal?.aborted) {
+         throw new Error("Upload cancelled");
+      }
+
       const file = files[index];
       const uploadDate = new Date().toISOString();
       
       try {
-         let url;
-         if (shouldUseCatbox) {
-            // Upload to Catbox with user hash (permanent)
-            url = await uploadFileToCatbox(file);
-         } else {
-            // Upload to Litterbox anonymously (72h)
-            url = await uploadFileToLitterbox(file, FileLifetime.ThreeDays);
-         }
+         // Upload to Litterbox anonymously
+         const url = await uploadFileToLitterbox(file, duration, signal, (fileProgress) => {
+            // Calculate total progress: (already uploaded bytes + current file bytes * current file progress) / total bytes
+            const currentUploadedSize = uploadedSize + (file.size * fileProgress);
+            onProgress(currentUploadedSize / totalSize);
+         });
 
          previews[url] = _previews[index];
          results.push({ status: "fulfilled", value: url });
@@ -261,11 +278,15 @@ export async function uploadFiles(files, _previews, onProgress, useAnonymous = f
             size: file.size,
             uploadDate,
             preview: _previews[index],
-            anonymous: !shouldUseCatbox,
-            deletable: shouldUseCatbox
+            anonymous: true,
+            deletable: false,
+            duration: duration
          });
          
       } catch (error) {
+         if (error.name === 'AbortError' || signal?.aborted || error.message === "Upload cancelled") {
+             throw new Error("Upload cancelled");
+         }
          results.push({ status: "rejected", reason: error.message });
       }
       

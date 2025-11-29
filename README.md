@@ -13,7 +13,7 @@ This repository contains plugins for [Shelter](https://github.com/uwu/shelter).
 End-to-End Encryption (E2EE) for Discord using the OpenPGP standard.
 
 ### [Catbox Uploader](./plugins/catbox-upload)
-Upload files up to 200MB directly to Catbox.moe/Litterbox from Discord. Bypass Discord's file size limits with anonymous or authenticated uploads.
+Upload files up to 1GB directly to Litterbox (Catbox.moe) from Discord. Bypass Discord's file size limits with anonymous temporary uploads.
 
 
 

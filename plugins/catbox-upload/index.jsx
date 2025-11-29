@@ -2,6 +2,7 @@ const { observeDom } = shelter.plugin.scoped;
 
 const {
    ui: { openModal, showToast, Header, HeaderTags, Text, TextBox, Button, ButtonSizes, ButtonColors, focusring },
+   solid: { Show, render, createEffect, untrack },
    plugin,
 } = shelter;
 
@@ -9,14 +10,12 @@ const { subscribe } = shelter.plugin.scoped.flux;
 
 import { UploadModal } from "./modal";
 import { ChoiceModal } from "./choiceModal";
-import { updateUserHash } from "./utils";
-import uploadIcon from "./uploadIcon";
+import { isFileTypeAllowed } from "./utils";
+import UploadIcon from "./uploadIcon";
+import HourglassIcon from "./hourglassIcon";
+import { uploadStatus, uploadProgress } from "./state";
 
 import classes from "./modal.jsx.scss";
-
-function updateConfig() {
-   updateUserHash(plugin.store.userhash);
-}
 
 function uploadButton() {
    return (
@@ -24,10 +23,13 @@ function uploadButton() {
          use:focusring
          class={classes.replacedButton}
          onClick={() => {
-            openModal((p) => UploadModal(p.close));
+            openModal((p) => UploadModal(p.close, []));
          }}
+         title={uploadStatus() === "uploading" ? `Upload en cours... ${Math.round(uploadProgress())}%` : "Upload to Catbox"}
       >
-         {uploadIcon}
+         <Show when={uploadStatus() === "uploading"} fallback={<UploadIcon />}>
+            <HourglassIcon />
+         </Show>
       </button>
    );
 }
@@ -56,16 +58,24 @@ function handlePaste(event) {
       }
    }
 
-   if (files.length > 0) {
+   const allowedFiles = files.filter(isFileTypeAllowed);
+   if (allowedFiles.length < files.length) {
+      showToast({
+         title: "Fichiers ignorés",
+         content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)",
+      });
+   }
+
+   if (allowedFiles.length > 0) {
       event.preventDefault();
       event.stopPropagation();
       
       openModal((p) => ChoiceModal(
          p.close,
-         files,
+         allowedFiles,
          // Catbox choice
          () => {
-            openModal((p2) => UploadModal(p2.close, files));
+            openModal((p2) => UploadModal(p2.close, allowedFiles));
          },
          // Discord choice
          () => {
@@ -75,12 +85,16 @@ function handlePaste(event) {
                setTimeout(() => {
                   const textarea = document.querySelector('[class*="textArea"]');
                   if (textarea) {
-                     const newEvent = new ClipboardEvent('paste', {
-                        clipboardData: event.clipboardData,
+                     const dataTransfer = new DataTransfer();
+                     allowedFiles.forEach(file => dataTransfer.items.add(file));
+                     
+                     // Simulate a drop event which Discord handles well for files
+                     const dropEvent = new DragEvent('drop', {
                         bubbles: true,
-                        cancelable: true
+                        cancelable: true,
+                        dataTransfer: dataTransfer
                      });
-                     textarea.dispatchEvent(newEvent);
+                     textarea.dispatchEvent(dropEvent);
                   }
                   interceptState.pasteEnabled = plugin.store.interceptPaste;
                }, 100);
@@ -91,7 +105,7 @@ function handlePaste(event) {
                   const input = document.querySelector('input[type="file"]');
                   if (input) {
                      const dataTransfer = new DataTransfer();
-                     files.forEach(file => dataTransfer.items.add(file));
+                     allowedFiles.forEach(file => dataTransfer.items.add(file));
                      input.files = dataTransfer.files;
                      input.dispatchEvent(new Event('change', { bubbles: true }));
                      input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -114,18 +128,29 @@ function handleFileInput(event) {
    if (!input.closest('[class*="channelTextArea"]') && !input.closest('[class*="attachButton"]')) return;
 
    const files = Array.from(input.files);
+   const allowedFiles = files.filter(isFileTypeAllowed);
+
+   if (allowedFiles.length < files.length) {
+      showToast({
+         title: "Fichiers ignorés",
+         content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)",
+      });
+   }
+
+   if (allowedFiles.length === 0) return;
+
    const dataTransfer = new DataTransfer();
-   files.forEach(file => dataTransfer.items.add(file));
+   allowedFiles.forEach(file => dataTransfer.items.add(file));
    
    event.preventDefault();
    event.stopPropagation();
    
    openModal((p) => ChoiceModal(
       p.close,
-      files,
+      allowedFiles,
       // Catbox choice
       () => {
-         openModal((p2) => UploadModal(p2.close, files));
+         openModal((p2) => UploadModal(p2.close, allowedFiles));
          input.value = ''; // Clear the input
       },
       // Discord choice
@@ -162,18 +187,15 @@ function handleKeybind(event) {
    
    if (keyMatch && ctrlMatch && shiftMatch && altMatch) {
       event.preventDefault();
-      openModal((p) => UploadModal(p.close));
+      openModal((p) => UploadModal(p.close, []));
    }
 }
 
 export function onLoad() {
-   plugin.store.userhash ??= "";
    plugin.store.previews ??= {};
    plugin.store.interceptPaste ??= true;
    plugin.store.interceptFileInput ??= true;
    plugin.store.uploadKeybind ??= "ctrl+shift+u";
-
-   updateConfig();
 
    // Enable interception
    interceptState.pasteEnabled = plugin.store.interceptPaste;
@@ -197,7 +219,14 @@ export function onLoad() {
          if (element.dataset.catboxUpload) return;
          unobserve();
          element.dataset.catboxUpload = true;
-         element.prepend(uploadButton());
+         
+         // Create a container for the reactive button
+         const container = document.createElement('div');
+         container.style.display = 'inline-flex';
+         element.prepend(container);
+         
+         // Render the button reactively using Solid's render
+         render(() => uploadButton(), container);
       });
       setTimeout(() => unobserve(), 2000);
    });
@@ -221,24 +250,23 @@ export const settings = () => (
          `}
       </style>
       <Text>
-         This plugin uses a browser-compatible implementation inspired by <strong>node-catbox</strong> for file uploads to Litterbox.
+         This plugin allows you to upload anonymous files up to <strong>1GB</strong> directly to Litterbox (Catbox.moe) from Discord.
          <br />
          <br />
          <strong>Upload Duration:</strong>
          <br />
-         • All files expire after <strong>72 hours</strong> (Litterbox maximum)
+         • Choose between <strong>1h, 12h, 24h, or 72h</strong> expiration.
          <br />
          <br />
          <strong>Features:</strong>
          <br />
-         • Browser-native FormData uploads
+         • <strong>Upload Large Files:</strong> Share files up to 1GB directly from Discord.
          <br />
-         • Clean API following node-catbox patterns
+         • <strong>Anonymous Uploads:</strong> Temporary uploads with configurable expiration.
          <br />
-         • No CORS issues in browser environment
+         • <strong>Drag & Drop:</strong> Modern and intuitive file upload experience.
          <br />
-         <br />
-         <em>Note: User Hash configuration is preserved for potential future Catbox.moe integration.</em>
+         • <strong>History:</strong> Keep track of your uploads.
          <br />
          <br />
       </Text>
@@ -414,35 +442,6 @@ export const settings = () => (
             💡 Format : ctrl+shift+u, alt+u, ctrl+alt+shift+c, etc.
          </p>
       </div>
-      <br />
-      <Header tag={HeaderTags.H3}>User Hash (Reserved for future use)</Header>
-      <TextBox
-         placeholder="Not currently used with Litterbox"
-         value={plugin.store.userhash}
-         onInput={(v) => {
-            plugin.store.userhash = v;
-            updateConfig();
-         }}
-         disabled
-      />
-      <br />
-      <br />
-      <Header tag={HeaderTags.H3}>Previews</Header>
-      <br />
-      <Button
-         style={{ width: "auto" }}
-         size={ButtonSizes.LARGE}
-         color={ButtonColors.RED}
-         onClick={() => {
-            plugin.store.previews = {};
-            showToast({
-               title: "Catbox Upload",
-               content: "Cleared cached previews.",
-            });
-         }}
-      >
-         Clear cached previews
-      </Button>
       <br />
       <br />
    </>

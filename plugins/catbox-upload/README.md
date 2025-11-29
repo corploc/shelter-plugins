@@ -5,24 +5,25 @@
 ![Shelter](https://img.shields.io/badge/Shelter-Plugin-blueviolet?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-Upload files up to 200MB directly to Catbox.moe from Discord! Bypass Discord's file size limits with ease.
+Upload files up to **1GB** directly to Litterbox (Catbox.moe) from Discord! Bypass Discord's file size limits with ease.
 
-> **Upload anonymously or with your Catbox account!**
+> **Fast, Anonymous, and Temporary File Hosting**
 
-Catbox Uploader integrates seamlessly into Discord's chat interface, allowing you to share large files without any hassle. Files are hosted on Catbox.moe/Litterbox, providing reliable and fast file sharing.
+Catbox Uploader integrates seamlessly into Discord's chat interface, allowing you to share large files without any hassle. Files are hosted on Litterbox, providing reliable and fast temporary file sharing.
 
 ---
 
 ## ✨ Features
 
-- [x] **Upload Large Files**: Share files up to 200MB directly from Discord.
-- [x] **Anonymous Uploads**: Quick 72-hour temporary uploads (CORS-compatible).
-- [x] **Inspired by node-catbox**: Browser-compatible implementation following node-catbox architecture.
+- [x] **Upload Huge Files**: Share files up to **1GB** directly from Discord.
+- [x] **Configurable Expiration**: Choose between **1h, 12h, 24h, or 72h** retention.
+- [x] **Anonymous Uploads**: No account required, purely temporary hosting.
 - [x] **Drag & Drop Interface**: Modern and intuitive file upload experience.
 - [x] **Real-time Progress**: Track your upload progress with a visual progress bar.
 - [x] **Image/Video Preview**: Preview your files before uploading.
 - [x] **Auto Link Insertion**: Links are automatically inserted in your message.
-- [x] **No CORS Issues**: Uses Litterbox API which works seamlessly in browsers.
+- [x] **Upload History**: Keep track of your recent uploads and their expiration status.
+- [x] **Smart Interception**: Optional interception of Paste (Ctrl+V) and File Input events.
 
 ---
 
@@ -51,24 +52,18 @@ Catbox Uploader integrates seamlessly into Discord's chat interface, allowing yo
 ## 🚀 Usage
 
 ### 1. Find the Upload Button
-Look for the **cat icon with an upload arrow** in the Discord chat input bar (left of the GIF/emoji buttons).
+Look for the **cat icon with an upload arrow** in the Discord chat input bar (left of the GIF/emoji buttons). Alternatively, use the configured keybind (default: `Ctrl+Shift+U`).
 
 ### 2. Upload Files
-- **Click the button** to open the upload modal
-- **Drag & drop** files into the modal, or click to select files
-- Files are previewed before upload
-- Click **Upload** to send files to Catbox/Litterbox
+- **Click the button** to open the upload modal.
+- **Drag & drop** files into the modal, or click to select files.
+- **Select Expiration**: Choose how long the file should last (1h, 12h, 24h, or 72h).
+- Click **Upload** to send files to Litterbox.
 
-### 3. Configure (Optional)
-Go to **Settings > Catbox Uploader**.
-
-#### Anonymous Uploads (Default)
-- No configuration needed
-- Files uploaded to **Litterbox** with browser-compatible implementation
-- Files expire after **72 hours** (maximum for Litterbox)
-- CORS-compatible, works everywhere
-
-> **Note**: User Hash configuration is preserved for potential future Catbox.moe integration, but Litterbox (used for CORS compatibility) has a maximum retention of 72 hours regardless of account status.
+### 3. Interception (Optional)
+Go to **Settings > Catbox Uploader** to configure:
+- **Paste Interception**: Automatically offer to upload to Catbox when pasting files (Ctrl+V).
+- **Upload Button Interception**: Intercept the standard Discord upload button.
 
 ---
 
@@ -97,10 +92,12 @@ npx lune build catbox-upload
 
 - Browser-compatible implementation inspired by **node-catbox** architecture
 - Uses native browser File API and FormData for uploads
-- Files are temporary with maximum 72h retention (Litterbox limitation)
-- Maximum file size is 200MB (Litterbox limitation)
-- No file management features (Litterbox doesn't provide these APIs)
-- Clean API abstraction following node-catbox patterns
+- Files are temporary with configurable retention (1h to 72h)
+- Maximum file size is **1GB** (Litterbox limitation)
+- Direct communication with Litterbox API (No proxy required)
+
+### Inspiration
+- **External Upload** by [xirreal-plugins](https://github.com/xirreal-plugins)
 
 ---
 

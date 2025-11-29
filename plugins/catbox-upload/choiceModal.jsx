@@ -40,10 +40,10 @@ export function ChoiceModal(closeModal, files, onCatboxChoice, onDiscordChoice) 
                      <div class={styles.optionInfo}>
                         <h3>Catbox (Litterbox)</h3>
                         <ul>
-                           <li>✅ Jusqu'à 200MB par fichier</li>
+                           <li>✅ Jusqu'à 1GB par fichier</li>
                            <li>✅ Lien copié automatiquement</li>
                            <li>✅ Historique des uploads</li>
-                           <li>⏱️ Expire après 72h</li>
+                           <li>⏱️ Expiration configurable (1h - 72h)</li>
                         </ul>
                      </div>
                      <div class={styles.optionBadge}>Recommandé</div>

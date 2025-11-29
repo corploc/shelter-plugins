@@ -1,5 +1,6 @@
 import styles from "./modal.jsx.scss";
-import { formatFileSize, getFilePreview, uploadFiles, getTimeRemaining, formatUploadDate, hasUserHash, deleteFileFromCatbox } from "./utils";
+import { formatFileSize, getFilePreview, getTimeRemaining, formatUploadDate, isFileTypeAllowed, FileLifetime } from "./utils";
+import { uploadStatus, setUploadStatus, uploadProgress, setUploadProgress, uploadedUrls, setUploadedUrls, uploadError, setUploadError, resetUploadState, startBackgroundUpload, currentUploadFiles, currentUploadPreviews, cancelUpload } from "./state";
 
 const {
    ui: {
@@ -13,22 +14,29 @@ const {
       ButtonColors,
       ButtonSizes,
    },
-   solid: { createSignal, createEffect, Show, For },
+   solid: { createSignal, createEffect, Show, For, onCleanup },
    util: { log, getFiber },
-   plugin: { store },
 } = shelter;
 
 export function UploadModal(closeModal, initialFiles = []) {
-   const [files, setFiles] = createSignal(initialFiles);
+   // If uploading, restore files from global state
+   const isRestoring = uploadStatus() === "uploading";
+   const [files, setFiles] = createSignal(isRestoring ? currentUploadFiles() : initialFiles);
    const [isDragOver, setIsDragOver] = createSignal(false);
-   const [previews, setPreviews] = createSignal([]);
-   const [isUploading, setIsUploading] = createSignal(false);
-   const [uploadProgress, setUploadProgress] = createSignal(0);
-   const [showHistory, setShowHistory] = createSignal(false);
-   const [uploadAnonymous, setUploadAnonymous] = createSignal(false);
+   const [previews, setPreviews] = createSignal(isRestoring ? currentUploadPreviews() : []);
+   // Use global state for uploading status
+   // const [isUploading, setIsUploading] = createSignal(false);
+   // const [uploadProgress, setUploadProgress] = createSignal(0);
+   const [currentTab, setCurrentTab] = createSignal("upload"); // "upload", "history"
+   const [uploadDuration, setUploadDuration] = createSignal(FileLifetime.ThreeDays);
 
-   // Initialize upload history from store
-   store.uploadHistory ??= [];
+   let isMounted = true;
+   onCleanup(() => {
+      isMounted = false;
+   });
+
+   // Initialize stores
+   shelter.plugin.store.uploadHistory ??= [];
 
    let fileInputRef;
 
@@ -47,28 +55,8 @@ export function UploadModal(closeModal, initialFiles = []) {
 
    // Function to delete from history
    const deleteFromHistory = async (index) => {
-      const item = store.uploadHistory[index];
-      
-      if (item.deletable && item.filenameOnServer) {
-         // Delete from Catbox server
-         try {
-            await deleteFileFromCatbox(item.filenameOnServer);
-            showToast({
-               title: "Fichier supprimé",
-               content: "Le fichier a été supprimé de Catbox",
-            });
-         } catch (error) {
-            log("Failed to delete from Catbox: " + error.message, "error");
-            showToast({
-               title: "Erreur de suppression",
-               content: "Impossible de supprimer le fichier du serveur",
-            });
-            return;
-         }
-      }
-      
       // Remove from history
-      store.uploadHistory = store.uploadHistory.filter((_, i) => i !== index);
+      shelter.plugin.store.uploadHistory = shelter.plugin.store.uploadHistory.filter((_, i) => i !== index);
    };
 
    const handleDragOver = (e) => {
@@ -84,95 +72,83 @@ export function UploadModal(closeModal, initialFiles = []) {
    const handleDrop = (e) => {
       e.preventDefault();
       setIsDragOver(false);
-      if (!isUploading()) {
+      if (uploadStatus() !== "uploading") {
          const droppedFiles = Array.from(e.dataTransfer.files);
-         setFiles((prevFiles) => [...prevFiles, ...droppedFiles]);
+         const allowedFiles = droppedFiles.filter(isFileTypeAllowed);
+         
+         if (allowedFiles.length < droppedFiles.length) {
+            showToast({
+               title: "Fichiers ignorés",
+               content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)",
+            });
+         }
+
+         // Check for file size limit (1GB)
+         const oversizedFiles = allowedFiles.filter(f => f.size > 1024 * 1024 * 1024);
+         if (oversizedFiles.length > 0) {
+            showToast({
+               title: "Fichiers trop volumineux",
+               content: `Certains fichiers dépassent la limite de 1GB et ont été ignorés.`,
+            });
+         }
+         
+         const validFiles = allowedFiles.filter(f => f.size <= 1024 * 1024 * 1024);
+
+         if (validFiles.length > 0) {
+            setFiles((prevFiles) => [...prevFiles, ...validFiles]);
+         }
       }
    };
 
    const handleFileChange = (e) => {
-      if (e.target.files && !isUploading()) {
+      if (e.target.files && uploadStatus() !== "uploading") {
          const selectedFiles = Array.from(e.target.files);
-         setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
+         const allowedFiles = selectedFiles.filter(isFileTypeAllowed);
+
+         if (allowedFiles.length < selectedFiles.length) {
+            showToast({
+               title: "Fichiers ignorés",
+               content: "Certains types de fichiers ne sont pas autorisés (.exe, .scr, .cpl, .doc*, .jar)",
+            });
+         }
+
+         // Check for file size limit (1GB)
+         const oversizedFiles = allowedFiles.filter(f => f.size > 1024 * 1024 * 1024);
+         if (oversizedFiles.length > 0) {
+            showToast({
+               title: "Fichiers trop volumineux",
+               content: `Certains fichiers dépassent la limite de 1GB et ont été ignorés.`,
+            });
+         }
+
+         const validFiles = allowedFiles.filter(f => f.size <= 1024 * 1024 * 1024);
+
+         if (validFiles.length > 0) {
+            setFiles((prevFiles) => [...prevFiles, ...validFiles]);
+         }
       }
    };
 
    const handleRemoveFile = (index) => {
-      if (!isUploading()) {
+      if (uploadStatus() !== "uploading") {
          setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
          setPreviews((prevPreviews) => prevPreviews.filter((_, i) => i !== index));
       }
    };
 
    const handleUploadClick = () => {
-      if (!isUploading()) {
+      if (uploadStatus() !== "uploading") {
          fileInputRef.click();
       }
    };
 
-   const handleConfirm = async () => {
-      setIsUploading(true);
-      setUploadProgress(0);
+   const handleConfirm = () => {
+      const currentFiles = files();
+      const currentPreviews = previews();
+      const duration = uploadDuration();
 
-      const { uploadedFiles, previewsToSave, uploadHistory } = await uploadFiles(files(), previews(), (progress) => {
-         setUploadProgress(progress * 100);
-      }, uploadAnonymous());
-
-      const uploadedUrls = (await uploadedFiles)
-         .filter((result) => result.status === "fulfilled")
-         .map((result) => result.value);
-
-      const failedUploads = (await uploadedFiles)
-         .filter((result) => result.status === "rejected")
-         .map((result) => result.reason);
-
-      if (failedUploads.length == files().length) {
-         showToast({
-            title: "Upload échoué!",
-            content: "Tous les fichiers n'ont pas pu être uploadés",
-         });
-
-         for (const error of failedUploads) {
-            log("Catbox Upload - " + error, "error");
-         }
-      } else if (failedUploads.length > 0) {
-         showToast({
-            title: "Upload partiel!",
-            content: "Certains fichiers n'ont pas pu être uploadés",
-         });
-
-         for (const error of failedUploads) {
-            log("Catbox Upload - " + error, "error");
-         }
-      } else {
-         showToast({
-            title: "Upload réussi! 🎉",
-            content: "Liens copiés dans le presse-papier",
-         });
-
-         store.previews = { ...store.previews, ...previewsToSave };
-         
-         // Save to history
-         store.uploadHistory = [...uploadHistory, ...store.uploadHistory].slice(0, 50); // Keep last 50
-
-         const fiber = getFiber(document.querySelector('[class*="slateContainer"]'));
-         const editor = fiber.child.pendingProps.editor;
-
-         // Copy all URLs to clipboard
-         const allUrls = uploadedUrls.join(" ");
-         await copyToClipboard(allUrls);
-
-         for (let i = 0; i < uploadedUrls.length; i++) {
-            const url = uploadedUrls[i];
-            editor.insertText(url);
-            if (i < uploadedUrls.length - 1) {
-               editor.insertText(" ");
-            }
-         }
-      }
-
+      startBackgroundUpload(currentFiles, currentPreviews, duration);
       closeModal();
-      setIsUploading(false);
    };
 
    createEffect(() => {
@@ -187,26 +163,34 @@ export function UploadModal(closeModal, initialFiles = []) {
          <ModalHeader close={closeModal}>
             <div class={styles.headerContent}>
                <span>Upload to Litterbox</span>
-               <button 
-                  class={styles.historyToggle}
-                  onClick={() => setShowHistory(!showHistory())}
-               >
-                  {showHistory() ? "📤 Upload" : "📜 Historique"}
-               </button>
+               <div class={styles.headerTabs}>
+                  <button 
+                     class={`${styles.tabButton} ${currentTab() === "upload" ? styles.activeTab : ""}`}
+                     onClick={() => setCurrentTab("upload")}
+                  >
+                     📤 Upload
+                  </button>
+                  <button 
+                     class={`${styles.tabButton} ${currentTab() === "history" ? styles.activeTab : ""}`}
+                     onClick={() => setCurrentTab("history")}
+                  >
+                     📜 Historique
+                  </button>
+               </div>
             </div>
          </ModalHeader>
          <ModalBody>
-            <Show when={!showHistory()}>
+            <Show when={currentTab() === "upload"}>
                <div
-                  class={`${styles.uploadArea} ${isDragOver() ? styles.dragOver : ""} ${isUploading() ? styles.uploading : ""}`}
+                  class={`${styles.uploadArea} ${isDragOver() ? styles.dragOver : ""} ${uploadStatus() === "uploading" ? styles.uploading : ""}`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={handleUploadClick}
                >
-                  <Show when={!isUploading()} fallback={<p>Upload en cours... Veuillez patienter</p>}>
+                  <Show when={uploadStatus() !== "uploading"} fallback={<p>Upload en cours... Veuillez patienter</p>}>
                      <p>🐱 Glissez-déposez des fichiers ici ou cliquez pour sélectionner</p>
-                     <p class={styles.uploadInfo}>Taille maximale : 200MB par fichier • Durée : 72h</p>
+                     <p class={styles.uploadInfo}>Taille maximale : 1GB par fichier</p>
                   </Show>
                   <input
                      type="file"
@@ -214,33 +198,52 @@ export function UploadModal(closeModal, initialFiles = []) {
                      onChange={handleFileChange}
                      multiple
                      hidden
-                     disabled={isUploading()}
+                     disabled={uploadStatus() === "uploading"}
                   />
                </div>
-               <Show when={isUploading()}>
+               <Show when={uploadStatus() === "uploading"}>
                   <div class={styles.progressBar}>
                      <div class={styles.progressFill} style={{ width: `${uploadProgress()}%` }}></div>
                   </div>
                </Show>
                
-               <Show when={hasUserHash() && files().length > 0}>
-                  <div class={styles.anonymousToggle}>
-                     <label class={styles.anonymousLabel}>
-                        <input
-                           type="checkbox"
-                           checked={uploadAnonymous()}
-                           onChange={(e) => setUploadAnonymous(e.target.checked)}
-                           disabled={isUploading()}
-                        />
-                        <span class={styles.anonymousCheckbox}></span>
-                        <span class={styles.anonymousText}>
-                           🕶️ Upload anonyme (Litterbox 72h)
-                           <br />
-                           <small>Sinon : Catbox permanent avec votre compte</small>
-                        </span>
-                     </label>
+               <div class={styles.durationSelector}>
+                  <label>Expiration :</label>
+                  <div class={styles.durationOptions}>
+                     <button 
+                        class={`${styles.durationOption} ${uploadDuration() === FileLifetime.OneHour ? styles.active : ""}`}
+                        onClick={() => setUploadDuration(FileLifetime.OneHour)}
+                        disabled={uploadStatus() === "uploading"}
+                        title="1 Heure"
+                     >
+                        1h
+                     </button>
+                     <button 
+                        class={`${styles.durationOption} ${uploadDuration() === FileLifetime.TwelveHours ? styles.active : ""}`}
+                        onClick={() => setUploadDuration(FileLifetime.TwelveHours)}
+                        disabled={uploadStatus() === "uploading"}
+                        title="12 Heures"
+                     >
+                        12h
+                     </button>
+                     <button 
+                        class={`${styles.durationOption} ${uploadDuration() === FileLifetime.OneDay ? styles.active : ""}`}
+                        onClick={() => setUploadDuration(FileLifetime.OneDay)}
+                        disabled={uploadStatus() === "uploading"}
+                        title="24 Heures"
+                     >
+                        24h
+                     </button>
+                     <button 
+                        class={`${styles.durationOption} ${uploadDuration() === FileLifetime.ThreeDays ? styles.active : ""}`}
+                        onClick={() => setUploadDuration(FileLifetime.ThreeDays)}
+                        disabled={uploadStatus() === "uploading"}
+                        title="72 Heures (3 Jours)"
+                     >
+                        72h
+                     </button>
                   </div>
-               </Show>
+               </div>
 
                <div class={styles.previewArea}>
                   <For each={files()}>
@@ -262,7 +265,7 @@ export function UploadModal(closeModal, initialFiles = []) {
                            <button
                               class={styles.removeButton}
                               onClick={() => handleRemoveFile(index())}
-                              disabled={isUploading()}
+                              disabled={uploadStatus() === "uploading"}
                            >
                               <svg
                                  aria-hidden="true"
@@ -293,18 +296,18 @@ export function UploadModal(closeModal, initialFiles = []) {
                </div>
             </Show>
 
-            <Show when={showHistory()}>
+            <Show when={currentTab() === "history"}>
                <div class={styles.historyContainer}>
-                  <Show when={store.uploadHistory.length === 0}>
+                  <Show when={shelter.plugin.store.uploadHistory.length === 0}>
                      <div class={styles.emptyHistory}>
                         <p>📭 Aucun upload dans l'historique</p>
                         <p class={styles.uploadInfo}>Vos uploads apparaîtront ici</p>
                      </div>
                   </Show>
                   <div class={styles.historyList}>
-                     <For each={store.uploadHistory}>
+                     <For each={shelter.plugin.store.uploadHistory}>
                         {(item, index) => {
-                           const timeRemaining = item.anonymous ? getTimeRemaining(item.uploadDate) : null;
+                           const timeRemaining = getTimeRemaining(item.uploadDate, item.duration);
                            
                            return (
                               <div class={styles.historyItem}>
@@ -314,21 +317,16 @@ export function UploadModal(closeModal, initialFiles = []) {
                                  <div class={styles.historyInfo}>
                                     <div class={styles.historyHeader}>
                                        <p class={styles.historyFilename}>{item.filename}</p>
-                                       <span class={`${styles.badge} ${item.anonymous ? styles.badgeAnonymous : styles.badgeAuth}`}>
-                                          {item.anonymous ? "🔓 Anonyme" : "🔐 Authentifié"}
+                                       <span class={`${styles.badge} ${styles.badgeAnonymous}`}>
+                                          🔒 Anonyme
                                        </span>
                                     </div>
                                     <p class={styles.historyMeta}>
                                        {formatFileSize(item.size)} • {formatUploadDate(item.uploadDate)}
                                     </p>
-                                    <Show when={item.anonymous && timeRemaining}>
+                                    <Show when={timeRemaining}>
                                        <p class={styles.historyExpiry}>
                                           ⏱️ {timeRemaining}
-                                       </p>
-                                    </Show>
-                                    <Show when={!item.anonymous}>
-                                       <p class={styles.historyPermanent}>
-                                          ♾️ Permanent
                                        </p>
                                     </Show>
                                  </div>
@@ -340,24 +338,6 @@ export function UploadModal(closeModal, initialFiles = []) {
                                     >
                                        📋
                                     </button>
-                                    <Show when={item.deletable}>
-                                       <button
-                                          class={styles.deleteButton}
-                                          onClick={() => deleteFromHistory(index())}
-                                          title="Supprimer du serveur et de l'historique"
-                                       >
-                                          🗑️
-                                       </button>
-                                    </Show>
-                                    <Show when={!item.deletable}>
-                                       <button
-                                          class={`${styles.deleteButton} ${styles.buttonDisabled}`}
-                                          disabled
-                                          title="Les uploads anonymes ne peuvent pas être supprimés"
-                                       >
-                                          🔒
-                                       </button>
-                                    </Show>
                                  </div>
                               </div>
                            );
@@ -369,21 +349,34 @@ export function UploadModal(closeModal, initialFiles = []) {
          </ModalBody>
          <ModalFooter>
             <div class={styles.footer}>
+               <Show when={uploadStatus() === "uploading"}>
+                  <Button
+                     size={ButtonSizes.MEDIUM}
+                     color={ButtonColors.RED}
+                     onClick={() => {
+                        cancelUpload();
+                        closeModal();
+                     }}
+                  >
+                     Cancel Upload
+                  </Button>
+               </Show>
+               <Show when={uploadStatus() !== "uploading"}>
+                  <Button
+                     size={ButtonSizes.MEDIUM}
+                     color={ButtonColors.SECONDARY}
+                     onClick={() => closeModal()}
+                  >
+                     Cancel
+                  </Button>
+               </Show>
                <Button
-                  disabled={isUploading()}
-                  size={ButtonSizes.MEDIUM}
-                  color={ButtonColors.SECONDARY}
-                  onClick={() => (isUploading() ? null : closeModal())}
-               >
-                  Cancel
-               </Button>
-               <Button
-                  disabled={isUploading() || files().length === 0}
+                  disabled={uploadStatus() === "uploading" || files().length === 0}
                   size={ButtonSizes.MEDIUM}
                   color={ButtonColors.BRAND}
                   onClick={handleConfirm}
                >
-                  {isUploading() ? "Uploading..." : "Upload"}
+                  {uploadStatus() === "uploading" ? "Uploading..." : "Upload"}
                </Button>
             </div>
          </ModalFooter>

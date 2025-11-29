@@ -204,20 +204,36 @@
   padding-right: 10px;
 }
 
-.historyToggle {
-  background: var(--button-secondary-background);
-  color: var(--text-normal);
+.headerTabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tabButton {
+  background: transparent;
+  color: var(--text-muted);
   border: none;
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 500;
   transition: all 0.2s ease;
 }
 
-.historyToggle:hover {
-  background: var(--button-secondary-background-hover);
-  transform: translateY(-1px);
+.tabButton:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.activeTab {
+  background: var(--brand-experiment);
+  color: white;
+}
+
+.activeTab:hover {
+  background: var(--brand-experiment-560);
+  color: white;
 }
 
 .historyContainer {
@@ -311,17 +327,24 @@
 
 .badge {
   font-size: 10px;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .badgeAnonymous {
-  background: var(--status-warning-background);
-  color: var(--status-warning);
-  border: 1px solid var(--status-warning);
+  background: rgba(250, 166, 26, 0.15);
+  color: #faa61a;
+  border: 1px solid #faa61a;
+  font-weight: 700;
 }
 
 .badgeAuth {
@@ -330,70 +353,61 @@
   border: 1px solid var(--status-positive);
 }
 
-.anonymousToggle {
+.durationSelector {
   margin: 15px 0;
-  padding: 15px;
-  background: var(--background-secondary);
-  border-radius: 8px;
-  border: 1px solid var(--background-tertiary);
-}
-
-.anonymousLabel {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-}
-
-.anonymousLabel input[type="checkbox"] {
-  display: none;
-}
-
-.anonymousCheckbox {
-  position: relative;
-  width: 44px;
-  height: 24px;
+  padding: 12px;
   background: var(--background-tertiary);
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--background-modifier-accent);
 }
 
-.anonymousCheckbox::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background: white;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.durationSelector label {
+  color: var(--text-normal);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
 }
 
-.anonymousLabel input[type="checkbox"]:checked + .anonymousCheckbox {
-  background: var(--status-warning);
+.durationOptions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
 }
 
-.anonymousLabel input[type="checkbox"]:checked + .anonymousCheckbox::after {
-  left: 22px;
+.durationOption {
+  flex: 1;
+  padding: 8px;
+  border-radius: 4px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--background-modifier-accent);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-align: center;
 }
 
-.anonymousLabel input[type="checkbox"]:disabled + .anonymousCheckbox {
+.durationOption:hover:not(:disabled) {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: var(--text-muted);
+}
+
+.durationOption.active {
+  background: var(--brand-experiment);
+  color: white;
+  border-color: var(--brand-experiment);
+}
+
+.durationOption:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.anonymousText {
-  font-size: 13px;
-  color: var(--text-normal);
-  line-height: 1.4;
-}
-
-.anonymousText small {
-  color: var(--text-muted);
-  font-size: 11px;
 }
 
 .buttonDisabled {
@@ -509,6 +523,7 @@
 
 .optionInfo {
   flex: 1;
+  color: white;
 }
 
 .optionInfo h3 {
