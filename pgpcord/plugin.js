@@ -18044,21 +18044,21 @@ shelter.plugin.scoped.ui.injectCss(`.qtaweq_container {
 }
 `);
 var settings_default = {
-	"muted": "qtaweq_muted",
-	"text": "qtaweq_text",
-	"button": "qtaweq_button",
-	"section": "qtaweq_section",
 	"subHeader": "qtaweq_subHeader",
-	"error": "qtaweq_error",
-	"header": "qtaweq_header",
+	"muted": "qtaweq_muted",
+	"label": "qtaweq_label",
 	"container": "qtaweq_container",
 	"codeBlock": "qtaweq_codeBlock",
-	"inputGroup": "qtaweq_inputGroup",
+	"copyButton": "qtaweq_copyButton",
+	"header": "qtaweq_header",
 	"input": "qtaweq_input",
-	"label": "qtaweq_label",
 	"secondaryButton": "qtaweq_secondaryButton",
+	"text": "qtaweq_text",
+	"error": "qtaweq_error",
 	"select": "qtaweq_select",
-	"copyButton": "qtaweq_copyButton"
+	"button": "qtaweq_button",
+	"section": "qtaweq_section",
+	"inputGroup": "qtaweq_inputGroup"
 };
 
 //#endregion
